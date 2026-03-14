@@ -1184,52 +1184,40 @@ function startFirestoreListeners(){
 
   dbg('Step 2: Connecting to Firestore…');
 
+function startFirestoreListeners(){
   let firstLoad=true;
-  db.collection('jobs').onSnapshot(snapshot=>{
-    clearTimeout(timeout);
-    jobs=snapshot.docs.map(d=>d.data());
-    jobs.sort((a,b)=>{
-      const ta=a.createdAt||a.dt||'';
-      const tb=b.createdAt||b.dt||'';
+  db.collection('jobs').onSnapshot(function(snapshot){
+    jobs=snapshot.docs.map(function(d){return d.data();});
+    jobs.sort(function(a,b){
+      var ta=a.createdAt||a.dt||'';
+      var tb=b.createdAt||b.dt||'';
       return tb.localeCompare(ta);
     });
     setLive(true);
     if(firstLoad){
       firstLoad=false;
-      const ls=document.getElementById('loadScreen');
-if(ls){
-      ls.classList.add('fade');
-      setTimeout(()=>{ls.style.display='none';},400);
+      var ls=document.getElementById('loadScreen');
+      if(ls){ls.classList.add('fade');setTimeout(function(){ls.style.display='none';},400);}
       setUser(users[0]);
     } else {
       ra();
-      showConnStatus('🔄 Updated','ok',1800);
+      showConnStatus('Updated','ok',1800);
     }
-  }, err=>{
-    clearTimeout(timeout);
-    console.error('[AAK] Firestore error:',err);
+  }, function(err){
+    console.error('Firestore error:',err);
     setLive(false);
-    const ls=document.getElementById('loadScreen');
+    var ls=document.getElementById('loadScreen');
     if(ls&&!ls.classList.contains('fade')){
-      if(spinner) spinner.style.display='none';
-      if(loadMsg) loadMsg.textContent='';
-      if(errEl){
-        errEl.style.display='block';
-        errEl.innerHTML=`<strong>Firebase Error:</strong><br>${err.code||''}: ${err.message||'Unknown'}<br><br>
-          <button onclick="location.reload()" style="margin-top:6px;background:#c41010;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:700;">↺ Retry</button>`;
-      }
-    } else {
-      showConnStatus('⚠ Connection lost','err',0);
+      var errEl=document.getElementById('loadErr');
+      if(errEl){errEl.style.display='block';errEl.innerHTML='Error: '+err.message+'<br><button onclick="location.reload()">Retry</button>';}
     }
   });
-
-  db.collection('payPeriods').onSnapshot(snapshot=>{
-    payPeriods=snapshot.docs.map(d=>d.data());
-    payPeriods.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
-    if(document.getElementById('panel-payroll')?.classList.contains('active')) renderPayroll();
-  }, err=>console.error('[AAK] payPeriods error:',err));
+  db.collection('payPeriods').onSnapshot(function(snapshot){
+    payPeriods=snapshot.docs.map(function(d){return d.data();});
+    payPeriods.sort(function(a,b){return(b.at||'').localeCompare(a.at||'');});
+    if(document.getElementById('panel-payroll')&&document.getElementById('panel-payroll').classList.contains('active'))renderPayroll();
+  },function(err){console.error('payPeriods error:',err);});
 }
-
 function ra(){renderStats();renderBoard();renderApprovals();renderJT();renderSchedule();renderCodes();renderPayroll();renderSettings();renderMechDash();renderMechHours();renderAttn();renderToday();updBadges();renderInvoices();}
 
 // Hook up submit week preview when selection changes (called from HTML onchange)
