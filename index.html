@@ -1037,7 +1037,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 
 <div class="twrap" id="tw"></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ── FIREBASE CONFIG ───────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyA6ewSSdwTHvjGrpiqQ6W4RdH2J92qRd_o",
@@ -2458,3 +2458,13 @@ function updMobDots(){
   const dotB=document.getElementById('mnDotB');
   if(dotA)dotA.style.display=rv>0?'block':'none';
   if(dotB)dotB.style.display=act>0?'block':'none';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  init();
+  updMobNavVisibility();
+  updMobDots();
+});
+</script>
+</body>
+</html>
