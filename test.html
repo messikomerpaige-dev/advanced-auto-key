@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<h2 id="msg">Testing...</h2>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyA6ewSSdwTHvjGrpiqQ6W4RdH2J92qRd_o",
+  authDomain:"advanced-auto-key-19a9b.firebaseapp.com",
+  projectId:"advanced-auto-key-19a9b"
+});
+const db=firebase.firestore();
+db.collection('test').onSnapshot(()=>{
+  document.getElementById('msg').textContent='✅ FIREBASE WORKS!';
+},err=>{
+  document.getElementById('msg').textContent='❌ ERROR: '+err.message;
+});
+</script>
+</body>
+</html>
