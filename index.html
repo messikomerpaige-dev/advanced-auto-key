@@ -1184,6 +1184,7 @@ function startFirestoreListeners(){
   dbg('Step 2: Connecting to Firestore…');
 
   let firstLoad=true;
+   setTimeout(()=>{const ls=document.getElementById('loadScreen');if(ls){ls.classList.add('fade');setTimeout(()=>{ls.style.display='none';},400);}setUser(users[0]);},3000);
   db.collection('jobs').onSnapshot(snapshot=>{
     clearTimeout(timeout);
     jobs=snapshot.docs.map(d=>d.data());
