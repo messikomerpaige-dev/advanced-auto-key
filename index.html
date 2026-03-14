@@ -1046,6 +1046,7 @@ const firebaseConfig = {
   messagingSenderId: "629463442619",
   appId: "1:629463442619:web:4e86ed75ce3cd52110759e"
 };
+   window.onerror=function(m,s,l){document.getElementById('loadMsg').textContent='ERROR line '+l+': '+m;document.querySelector('.load-spinner').style.display='none';return true;};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
