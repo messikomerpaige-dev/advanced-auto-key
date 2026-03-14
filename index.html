@@ -1168,21 +1168,6 @@ function startFirestoreListeners(){
 
   dbg('Step 1: Starting Firebase listeners…');
 
-  // Timeout — 15s
-  const timeout=setTimeout(()=>{
-    const ls=document.getElementById('loadScreen');
-    if(ls&&!ls.classList.contains('fade')){
-      if(spinner) spinner.style.display='none';
-      if(errEl){
-        errEl.style.display='block';
-        errEl.innerHTML=`Timed out after 15 seconds.<br><br>
-          Open browser Console (F12) and look for red errors.<br><br>
-          <button onclick="location.reload()" style="margin-top:4px;background:#c41010;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:700;">↺ Retry</button>`;
-      }
-    }
-  }, 15000);
-
-  dbg('Step 2: Connecting to Firestore…');
 
 function startFirestoreListeners(){
   let firstLoad=true;
