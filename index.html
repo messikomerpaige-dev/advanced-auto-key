@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a1a">
+<title>Advanced Auto Key — Shop Management</title>
+<!-- Firebase v9 compat (works as global variables, no bundler needed) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f2f2;--sur:#fff;--sur2:#f8f8f8;--bdr:#ddd;--bdr2:#bbb;--tx:#1a1a1a;--tx2:#666;--tx3:#aaa;--red:#c41010;--red2:#a00d0d;--rdim:rgba(196,16,16,.09);--rglow:rgba(196,16,16,.22);--grn:#1a7a45;--gdim:rgba(26,122,69,.1);--blu:#1a55a0;--bdim:rgba(26,85,160,.1);--org:#b85a00;--odim:rgba(184,90,0,.1);--gld:#b07800;--gdld:rgba(176,120,0,.1);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--tx);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh;}
+.app{display:grid;grid-template-columns:250px 1fr;grid-template-rows:64px 1fr;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;background:#1a1a1a;border-bottom:3px solid var(--red);display:flex;align-items:center;padding:0 18px;gap:12px;position:sticky;top:0;z-index:200;}
+.logo-svg{flex-shrink:0;}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;letter-spacing:1.5px;color:#fff;text-transform:uppercase;line-height:1.1;}
+.logo-text span{display:block;font-size:10px;font-weight:600;color:#999;letter-spacing:2.5px;}
+.topbar-div{width:1px;height:32px;background:#444;margin:0 6px;}
+.topbar-sp{flex:1;}
+.topbar-clk{font-family:'JetBrains Mono',monospace;font-size:11px;color:#888;}
+.notif{display:flex;align-items:center;gap:5px;background:var(--rdim);border:1px solid var(--red);border-radius:20px;padding:4px 11px;cursor:pointer;font-size:12px;font-weight:700;color:var(--red);font-family:'Barlow Condensed',sans-serif;transition:all .15s;}
+.notif:hover{background:var(--red);color:#fff;}
+.notif.hidden{display:none;}
+.usr-sw{display:flex;align-items:center;gap:8px;background:#2a2a2a;border:1px solid #444;border-radius:5px;padding:5px 12px;cursor:pointer;}
+.usr-name{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#fff;}
+.usr-role{font-size:10px;color:#999;letter-spacing:1px;text-transform:uppercase;}
+
+/* SIDEBAR */
+.sidebar{background:#222;display:flex;flex-direction:column;overflow-y:auto;}
+.sb-profile{padding:16px;border-bottom:1px solid #333;display:flex;align-items:center;gap:10px;}
+.sb-av{width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#fff;flex-shrink:0;}
+.sb-nm{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;color:#fff;}
+.sb-rl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:1.5px;}
+.sb-sec{padding:12px 16px 3px;font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:2.5px;color:#555;text-transform:uppercase;}
+.ni{display:flex;align-items:center;gap:9px;padding:10px 16px;cursor:pointer;color:#999;font-weight:500;font-size:13px;transition:all .15s;border-left:3px solid transparent;}
+.ni:hover{color:#fff;background:rgba(255,255,255,.05);}
+.ni.active{color:#fff;border-left-color:var(--red);background:rgba(196,16,16,.12);}
+.nic{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+.nbg{margin-left:auto;border-radius:10px;font-size:10px;font-weight:700;padding:2px 6px;font-family:'JetBrains Mono',monospace;background:var(--red);color:#fff;}
+
+/* MAIN */
+.main{overflow-y:auto;padding:24px;background:var(--bg);}
+.panel{display:none;}.panel.active{display:block;}
+.ph{display:flex;align-items:flex-end;gap:14px;margin-bottom:20px;}
+.pt{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:1px;text-transform:uppercase;line-height:1;}
+.ps{color:var(--tx3);font-size:12px;margin-top:2px;}
+.pa{margin-left:auto;display:flex;gap:8px;align-items:center;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.bp{background:var(--red);color:#fff;}.bp:hover{background:var(--red2);}
+.bg{background:#fff;color:var(--tx2);border:1px solid var(--bdr);}.bg:hover{border-color:var(--bdr2);color:var(--tx);}
+.bk{background:#1a1a1a;color:#fff;}.bk:hover{background:#333;}
+.bsuc{background:var(--gdim);color:var(--grn);border:1.5px solid var(--grn);}.bsuc:hover{background:var(--grn);color:#fff;}
+.bdng{background:var(--rdim);color:var(--red);border:1.5px solid var(--red);}.bdng:hover{background:var(--red);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11px;}.btn-xs{padding:3px 7px;font-size:10px;}
+
+/* MECHANIC BIG BUTTONS */
+.mbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:20px 14px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .15s;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;letter-spacing:1px;text-transform:uppercase;width:100%;}
+.mbtn-icon{font-size:32px;}
+.mb-go{background:var(--grn);color:#fff;border-color:var(--grn);}.mb-go:hover{background:#156337;}
+.mb-sub{background:var(--red);color:#fff;}.mb-sub:hover{background:var(--red2);}
+.mb-dn{background:#1a1a1a;color:#fff;}.mb-dn:hover{background:#444;}
+.mb-view{background:#f0f0f0;color:var(--tx);border-color:var(--bdr);}.mb-view:hover{background:#e0e0e0;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.sc{background:#fff;border:1px solid var(--bdr);border-radius:7px;padding:16px;position:relative;overflow:hidden;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.sc:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);transform:translateY(-1px);}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.ca::before{background:var(--red);}.cb::before{background:var(--org);}.cc::before{background:var(--blu);}.cd::before{background:var(--grn);}
+.sl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:8px;}
+.sv{font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;line-height:1;}
+.ca .sv{color:var(--red);}.cb .sv{color:var(--org);}.cc .sv{color:var(--blu);}.cd .sv{color:var(--grn);}
+.ss{font-size:11px;color:var(--tx3);margin-top:4px;}
+
+/* BOX / TABLE */
+.box{background:#fff;border:1px solid var(--bdr);border-radius:7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.dt{width:100%;border-collapse:collapse;}
+.dt th{text-align:left;padding:9px 14px;font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bdr);background:#f8f8f8;}
+.dt td{padding:11px 14px;border-bottom:1px solid var(--bdr);vertical-align:middle;}
+.dt tbody tr:hover td{background:#fafafa;}
+.dt tbody tr:last-child td{border-bottom:none;}
+
+/* STATUS */
+.st{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;white-space:nowrap;}
+.s-new{background:#e8f0fe;color:var(--blu);}
+.s-ev{background:var(--gdld);color:var(--gld);}
+.s-rv{background:var(--odim);color:var(--org);}
+.s-ip{background:var(--rdim);color:var(--red);}
+.s-co{background:var(--gdim);color:var(--grn);}
+
+/* WORKFLOW CARD */
+.wc{background:#fff;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.wc-r{border-top:4px solid var(--red);}.wc-g{border-top:4px solid var(--grn);}.wc-o{border-top:4px solid var(--gld);}
+.wch{padding:14px 18px;background:#f8f8f8;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.wcb{padding:18px;}
+
+/* FORMS */
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);font-family:'Barlow Condensed',sans-serif;}
+input[type=text],input[type=tel],input[type=email],input[type=number],input[type=date],input[type=time],select,textarea{background:#fff;border:1.5px solid var(--bdr);border-radius:4px;color:var(--tx);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;transition:border-color .15s;width:100%;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red);}
+textarea{resize:vertical;min-height:70px;}
+
+/* MODAL */
+.mb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.mb.open{display:flex;}
+.modal{background:#fff;border:1px solid var(--bdr);border-top:4px solid var(--red);border-radius:8px;width:700px;max-width:96vw;max-height:92vh;overflow-y:auto;animation:mIn .18s ease;box-shadow:0 16px 48px rgba(0,0,0,.18);}
+.mlg{width:840px;}
+@keyframes mIn{from{transform:translateY(12px) scale(.98);opacity:0;}to{transform:none;opacity:1;}}
+.mh{padding:18px 24px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:flex-start;background:#f8f8f8;}
+.mt{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:1px;}
+.ms{font-size:11px;color:var(--tx3);margin-top:2px;}
+.mc{margin-left:auto;background:none;border:none;color:var(--tx3);font-size:22px;cursor:pointer;line-height:1;transition:color .15s;}
+.mc:hover{color:var(--red);}
+.mbody{padding:20px 24px;}
+.mfoot{padding:14px 24px;border-top:1px solid var(--bdr);display:flex;gap:8px;justify-content:flex-end;background:#f8f8f8;}
+
+/* LINE CARDS */
+.lc{border:1.5px solid var(--bdr);border-radius:6px;padding:12px;margin-bottom:8px;transition:border-color .15s;}
+.lc-pend{border-color:var(--gld);background:var(--gdld);}
+.lc-acc{border-color:var(--grn);background:var(--gdim);}
+.lc-dec{border-color:var(--red);background:var(--rdim);}
+
+/* RO LINE TABLE */
+.rolt{width:100%;border-collapse:collapse;}
+.rolt th{text-align:left;padding:6px 9px;font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);border-bottom:1px solid var(--bdr);}
+.rolt td{padding:8px 9px;border-bottom:1px solid var(--bdr);font-size:13px;}
+.rolt tr:last-child td{border-bottom:none;}
+
+/* NOTES */
+.nt{display:flex;flex-direction:column;gap:7px;max-height:200px;overflow-y:auto;}
+.note{border-radius:5px;padding:9px 12px;}
+.note.mechanic{background:#e8f0fe;border-left:3px solid var(--blu);}
+.note.writer{background:#fff0e8;border-left:3px solid var(--red);}
+.nmeta{font-size:9px;color:var(--tx3);margin-bottom:3px;font-family:'JetBrains Mono',monospace;}
+.ntext{font-size:13px;line-height:1.5;}
+.nirow{display:flex;gap:7px;margin-top:9px;}
+.nirow input{flex:1;}
+
+/* CODE GRID */
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+.cdbtn{background:#f8f8f8;border:1.5px solid var(--bdr);border-radius:5px;padding:9px 10px;cursor:pointer;transition:all .15s;text-align:left;}
+.cdbtn:hover{border-color:var(--red);background:var(--rdim);}
+.cdbtn.sel{border-color:var(--red);background:var(--rdim);}
+.cdn{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;margin-bottom:1px;}
+.cdh{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);}
+.cdc{font-size:10px;color:var(--tx3);}
+
+/* RO EDIT */
+.roe{display:grid;grid-template-columns:2.5fr 1fr 1fr auto;gap:7px;align-items:center;margin-bottom:5px;}
+.roe input{font-size:12px;padding:6px 8px;}
+
+/* HOUR TRACKER */
+.hr-week-card{background:#fff;border:1px solid var(--bdr);border-radius:7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.hr-week-head{padding:12px 16px;background:#f8f8f8;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.hr-line{display:grid;grid-template-columns:80px 80px 1fr 1fr 110px 80px 80px;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bdr);font-size:13px;}
+.hr-line:last-child{border-bottom:none;}
+.hr-line-hd{background:#f8f8f8;font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;padding:8px 14px;}
+.hr-stat-card{background:#fff;border:1px solid var(--bdr);border-radius:7px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.hr-stat-card::before{content:'';display:block;height:3px;border-radius:2px;margin-bottom:10px;}
+.hsc-a::before{background:var(--red);}.hsc-b::before{background:var(--grn);}.hsc-c::before{background:var(--blu);}.hsc-d::before{background:var(--gld);}
+
+/* PAY */
+.psum{background:#f8f8f8;border:1px solid var(--bdr);border-radius:6px;padding:16px;}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bdr);}
+.prow:last-child{border-bottom:none;}
+.plbl{font-size:13px;color:var(--tx2);}
+.pval{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;}
+.ptot .plbl{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--tx);text-transform:uppercase;}
+.ptot .pval{font-size:26px;color:var(--grn);}
+
+/* BOARD */
+.bcols{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start;}
+.bc{background:#fff;border:1px solid var(--bdr);border-radius:7px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.bch{padding:10px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:7px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;background:#f8f8f8;}
+.bcd{width:8px;height:8px;border-radius:50%;}
+.bcn{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx3);}
+.bcb{padding:9px;display:flex;flex-direction:column;gap:7px;min-height:70px;}
+.jcard{background:#fff;border:1px solid var(--bdr);border-left:4px solid var(--bdr);border-radius:5px;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.jcard:hover{box-shadow:0 3px 8px rgba(0,0,0,.1);transform:translateY(-1px);}
+.j-new{border-left-color:var(--blu);}
+.j-ev{border-left-color:var(--gld);}
+.j-rv{border-left-color:var(--org);}
+.j-ip{border-left-color:var(--red);}
+.j-co{border-left-color:var(--grn);}
+.jcid{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);margin-bottom:2px;}
+.jccu{font-weight:700;font-size:14px;margin-bottom:1px;}
+.jcvh{font-size:11px;color:var(--tx2);margin-bottom:5px;}
+.jcsv{font-size:11px;color:var(--tx);background:#f5f5f5;padding:3px 7px;border-radius:3px;margin-bottom:6px;}
+.jcm{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.jct{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);}
+.tag{display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;}
+
+/* MECH CARD */
+.mjc{background:#fff;border:2px solid var(--bdr);border-radius:9px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);}
+.mjt{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;margin-bottom:3px;}
+.mjm{font-size:13px;color:var(--tx2);margin-bottom:12px;}
+.msec{background:#f8f8f8;border:1px solid var(--bdr);border-radius:5px;padding:12px;margin-bottom:10px;}
+.mst{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px;}
+
+/* SETTINGS */
+.sset{background:#fff;border:1px solid var(--bdr);border-radius:7px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.sstit{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bdr);}
+.urow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr);}
+.urow:last-child{border-bottom:none;}
+.uav{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;color:#fff;flex-shrink:0;}
+.uaw{background:var(--red);}.uam{background:var(--blu);}
+
+/* DEC CHIPS */
+.dacc{display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;background:var(--gdim);color:var(--grn);font-family:'Barlow Condensed',sans-serif;}
+.ddec{display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:800;background:var(--rdim);color:var(--red);font-family:'Barlow Condensed',sans-serif;}
+
+/* MISC */
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px;}
+.empty{text-align:center;padding:36px;color:var(--tx3);font-size:13px;}
+hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
+.mono{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx3);}
+.slbl{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--tx3);text-transform:uppercase;margin-bottom:8px;}
+.twrap{position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:5px;}
+.toast{background:#fff;border:1px solid var(--bdr);border-left:4px solid var(--grn);border-radius:5px;padding:10px 16px;font-size:13px;animation:tIn .2s ease;min-width:220px;box-shadow:0 4px 12px rgba(0,0,0,.12);}
+.toast.err{border-left-color:var(--red);}.toast.wrn{border-left-color:var(--gld);}
+@keyframes tIn{from{transform:translateX(12px);opacity:0;}to{transform:none;opacity:1;}}
+
+/* LOADING SCREEN */
+#loadScreen{position:fixed;inset:0;background:#1a1a1a;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s ease;}
+#loadScreen.fade{opacity:0;pointer-events:none;}
+.load-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:32px;letter-spacing:4px;color:#fff;text-transform:uppercase;}
+.load-logo span{color:#c41010;}
+.load-sub{font-size:13px;color:#666;letter-spacing:1px;}
+.load-spinner{width:32px;height:32px;border:3px solid #333;border-top-color:#c41010;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-err{color:#c41010;font-size:13px;text-align:center;max-width:300px;line-height:1.6;display:none;padding:0 20px;}
+/* CONNECTION INDICATOR */
+#connStatus{position:fixed;top:68px;right:12px;background:#1a1a1a;color:#fff;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;padding:5px 12px;border-radius:20px;z-index:500;opacity:0;transition:opacity .4s ease;pointer-events:none;white-space:nowrap;}
+#connStatus.show{opacity:1;}
+#connStatus.ok{background:var(--grn);}
+#connStatus.err{background:var(--red);}
+#connStatus.sync{background:var(--gld);color:#000;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#555;display:inline-block;margin-right:4px;transition:background .3s;}
+.live-dot.live{background:var(--grn);box-shadow:0 0 5px rgba(26,122,69,.7);animation:livePulse 2s ease-in-out infinite;}
+@keyframes livePulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+
+/* INVOICE */
+.inv-row-edit{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bdr);}
+.inv-row-edit:last-child{border-bottom:none;}
+.inv-row-edit input{font-size:13px;padding:5px 7px;}
+.inv-row-hd{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);font-family:'Barlow Condensed',sans-serif;background:#f8f8f8;padding:7px 12px;}
+
+/* ── MOBILE OVERLAY SIDEBAR ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;backdrop-filter:blur(2px);}
+.sidebar-overlay.open{display:block;}
+
+/* ── MOBILE BOTTOM NAV ── */
+.mob-nav{display:none;}
+
+/* ══════════════════════════════════════
+   MOBILE — iPhone & small screens
+══════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* Layout: single column, sidebar slides in from left */
+  .app{
+    grid-template-columns:1fr;
+    grid-template-rows:56px 1fr;
+    min-height:100vh;
+    min-height:-webkit-fill-available;
+  }
+
+  /* TOPBAR — compact */
+  .topbar{
+    padding:0 12px;gap:8px;
+    grid-column:1;
+    position:fixed;top:0;left:0;right:0;z-index:250;
+    height:56px;
+  }
+  .logo-svg{width:36px;height:36px;}
+  .logo-text{font-size:14px;letter-spacing:1px;}
+  .logo-text span{display:none;}
+  .topbar-div{display:none;}
+  .topbar-clk{display:none;}
+  .notif{padding:4px 9px;font-size:11px;}
+  .usr-sw{padding:5px 10px;}
+  .usr-name{font-size:13px;}
+  .usr-role{display:none;}
+
+  /* SIDEBAR — slides over content */
+  .sidebar{
+    position:fixed;
+    top:0;left:-280px;
+    width:280px;height:100vh;
+    z-index:400;
+    transition:left .25s ease;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .sidebar.mob-open{left:0;}
+
+  /* MAIN — full width, padded for topbar + bottom nav */
+  .main{
+    grid-column:1;
+    padding:72px 14px 80px;
+    min-height:100vh;
+    min-height:-webkit-fill-available;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  /* PAGE HEADERS */
+  .ph{flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+  .pt{font-size:22px;}
+  .pa{margin-left:0;width:100%;justify-content:flex-start;}
+  .pa .btn{flex:1;justify-content:center;}
+
+  /* STATS — 2×2 grid */
+  .stats-row{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .sv{font-size:32px;}
+  .sl{font-size:9px;}
+  .ss{font-size:10px;}
+
+  /* BOARD — vertical stack of columns */
+  .bcols{grid-template-columns:1fr;gap:10px;}
+  .bch{font-size:11px;}
+
+  /* FORMS */
+  .fg2{grid-template-columns:1fr;gap:8px;}
+  .fg3{grid-template-columns:1fr;gap:8px;}
+  input[type=text],input[type=tel],input[type=email],input[type=number],
+  input[type=date],input[type=time],select,textarea{
+    font-size:16px; /* prevents iOS zoom on focus */
+    padding:10px 12px;
+  }
+
+  /* MODALS — full screen on mobile */
+  .mb{align-items:flex-end;padding:0;}
+  .modal,.modal.mlg{
+    width:100%;max-width:100%;
+    border-radius:16px 16px 0 0;
+    max-height:92vh;
+    border-top:4px solid var(--red);
+    border-left:none;border-right:none;border-bottom:none;
+    animation:mSlideUp .25s ease;
+  }
+  @keyframes mSlideUp{from{transform:translateY(100%);}to{transform:none;}}
+  .mbody{padding:16px;}
+  .mh{padding:14px 16px 12px;}
+  .mfoot{padding:12px 16px;flex-wrap:wrap;gap:8px;}
+  .mfoot .btn{flex:1;justify-content:center;min-width:0;}
+  .mt{font-size:18px;}
+
+  /* TABLES — card-style on mobile */
+  .box{border-radius:8px;}
+  .dt thead{display:none;}
+  .dt tbody tr{display:flex;flex-direction:column;padding:12px 14px;border-bottom:1px solid var(--bdr);}
+  .dt tbody tr:last-child{border-bottom:none;}
+  .dt td{padding:2px 0;border:none;font-size:13px;}
+  .dt td::before{content:attr(data-label);font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);display:block;margin-bottom:1px;}
+  .dt td:first-child::before{display:none;}
+  .dt td:first-child{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx3);margin-bottom:4px;}
+
+  /* WORKFLOW CARDS */
+  .wch{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 14px;}
+  .wcb{padding:14px;}
+
+  /* LINE APPROVE CARDS */
+  .lc{padding:10px;}
+
+  /* RO ESTIMATE CODE GRID — 2 cols */
+  .cg{grid-template-columns:1fr 1fr;gap:6px;}
+  .cdn{font-size:12px;}
+  .cdh{font-size:9px;}
+
+  /* RO EDIT ROWS — stack description on its own row */
+  .roe{grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+  .roe input:first-child{grid-column:1/-1;}
+
+  /* Mechanic button grid on mech dash */
+  .mjc [style*="grid-template-columns:repeat(auto-fit"]{
+    grid-template-columns:1fr 1fr!important;
+  }
+
+  /* RO line table — card style */
+  .rolt{display:block;}
+  .rolt thead{display:none;}
+  .rolt tbody{display:flex;flex-direction:column;gap:8px;}
+  .rolt tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;padding:10px 12px;background:#f8f8f8;border-radius:6px;border:1px solid var(--bdr);}
+  .rolt tbody td{padding:2px 0;border:none;font-size:13px;}
+  .rolt tbody td:first-child{grid-column:1/-1;font-weight:700;font-size:14px;}
+
+  /* Dashboard two column → single */
+  #panel-dashboard>div:last-child{grid-template-columns:1fr!important;}
+
+  /* Hour tracker inner layout stack */
+  #panel-mech-hours>div[style*="grid-template-columns:300px"]{
+    grid-template-columns:1fr!important;
+  }
+  /* Hour tracker filter row */
+  #hrWkFilter,#hrCatFilter,#hrStatusFilter{width:100%!important;display:block;}
+
+  /* Approval panel line item cost row */
+  .lc [style*="display:flex;gap:12px"]{flex-wrap:wrap!important;gap:6px!important;}
+
+  /* Invoice modal inner grids */
+  #mInv [style*="display:grid;grid-template-columns:1fr 1fr"]{display:flex!important;flex-direction:column!important;}
+  .inv-row-edit{grid-template-columns:1fr 1fr;gap:5px;}
+  .inv-row-edit input:first-child{grid-column:1/-1;}
+
+  /* Payroll layout */
+  #panel-payroll>div[style*="grid-template-columns:1fr 300px"]{grid-template-columns:1fr!important;}
+
+  /* Hour tracker weekly breakdown submit area */
+  #hrWeeklyGrid{grid-template-columns:1fr!important;}
+
+  /* Hour tracker filter row stack */
+  #hrWkFilter,#hrCatFilter,#hrStatusFilter{width:100%!important;}
+
+  /* Settings user rows */
+  .sset{padding:14px;}
+
+  /* Fix tap target sizes for iOS */
+  .btn{min-height:42px;}
+  .ni{min-height:46px;padding:12px 16px;}
+  .jcard{-webkit-tap-highlight-color:transparent;}
+  .mbtn{-webkit-tap-highlight-color:transparent;}
+  .wc{-webkit-tap-highlight-color:transparent;}
+
+  /* Prevent text selection on tap */
+  .mob-nav-item,.btn,.ni,.jcard,.mbtn{user-select:none;-webkit-user-select:none;}
+
+  /* Fix invoice totals section on mobile */
+  #mInv [style*="max-width:320px"]{max-width:100%!important;margin-left:0!important;}
+
+  /* Job detail modal meta grid */
+  #dBody [style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:1fr 1fr!important;}
+
+  /* RO modal totals */
+  #mRO [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr!important;gap:8px!important;}
+
+  /* Invoice line items column header */
+  .inv-row-hd{display:none;}
+
+  /* Code grid 2 col */
+  .cg{grid-template-columns:1fr 1fr;}
+
+  /* MECHANIC BUTTONS — 2 cols always */
+  .mbtn{padding:16px 10px;font-size:14px;}
+  .mbtn-icon{font-size:26px;}
+
+  /* MECHANIC JOB CARDS */
+  .mjc{padding:14px;}
+  .mjt{font-size:17px;}
+
+  /* HOUR TRACKER STATS */
+  #hrSummaryCards{grid-template-columns:1fr 1fr!important;}
+  .hr-stat-card{padding:12px;}
+  .hr-big{font-size:26px!important;}
+
+  /* HOURS TABLE on mobile — card style */
+  #hrTable thead{display:none;}
+  #hrTable tbody tr{display:flex;flex-direction:column;padding:10px 14px;border-bottom:1px solid var(--bdr);}
+  #hrTable td{padding:2px 0;border:none;font-size:13px;}
+
+  /* SCHEDULE — horizontally scrollable */
+  #panel-schedule .box{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #schedGrid{min-width:500px;font-size:10px;}
+
+  /* New job form max-width override */
+  #panel-newjob>div{max-width:100%!important;}
+
+  /* Payroll rate box */
+  #rateBox input[type=number]{width:60px!important;}
+
+  /* TOAST — above bottom nav */
+  .twrap{bottom:90px;right:12px;left:12px;}
+  .toast{min-width:0;width:100%;}
+
+  /* HAMBURGER button */
+  .mob-menu-btn{
+    display:flex;align-items:center;justify-content:center;
+    width:38px;height:38px;background:rgba(255,255,255,.08);
+    border:none;border-radius:6px;cursor:pointer;
+    font-size:20px;color:#fff;flex-shrink:0;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* BOTTOM NAV */
+  .mob-nav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    background:#1a1a1a;
+    border-top:1px solid #333;
+    z-index:250;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .mob-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:8px 4px 6px;cursor:pointer;
+    color:#666;font-size:10px;font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;letter-spacing:.5px;text-transform:uppercase;gap:3px;
+    transition:color .15s;border:none;background:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .mob-nav-item.active{color:var(--red);}
+  .mob-nav-item .mn-icon{font-size:20px;line-height:1;}
+  .mob-nav-dot{
+    width:6px;height:6px;border-radius:50%;background:var(--red);
+    position:absolute;top:5px;right:calc(50% - 16px);
+  }
+
+}
+
+/* Tablet — 769-1024px: sidebar but narrower */
+@media(min-width:769px) and (max-width:1024px){
+  .app{grid-template-columns:200px 1fr;}
+  .stats-row{grid-template-columns:1fr 1fr;gap:10px;}
+  .bcols{grid-template-columns:1fr 1fr;gap:10px;}
+  .main{padding:20px 16px;}
+  .fg3{grid-template-columns:1fr 1fr;}
+  .mob-menu-btn{display:none;}
+  .mob-nav{display:none;}
+}
+
+/* Desktop — hide mobile elements */
+@media(min-width:769px){
+  .mob-menu-btn{display:none;}
+  .mob-nav{display:none;}
+  .sidebar-overlay{display:none!important;}
+}
+
+/* PRINT */
+@media print{
+  html,body{margin:0;padding:0;}
+  body>*{display:none!important;}
+  #printArea{display:block!important;position:static!important;}
+}
+#printArea{display:none;position:fixed;top:0;left:0;width:100%;background:#fff;z-index:99999;overflow:auto;}
+</style>
+<body>
+<!-- LOADING SCREEN -->
+<div id="loadScreen">
+  <div class="load-logo">Advanced <span>Auto Key</span></div>
+  <div class="load-spinner"></div>
+  <div class="load-sub" id="loadMsg">Connecting to database…</div>
+  <div class="load-err" id="loadErr"></div>
+</div>
+<!-- CONNECTION STATUS -->
+<div id="connStatus"></div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<div class="app">
+
+<header class="topbar">
+  <button class="mob-menu-btn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+  <!-- Inline logo matching brand colors -->
+  <svg class="logo-svg" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="24" cy="24" r="23" fill="#1a1a1a" stroke="#c41010" stroke-width="2"/>
+    <path d="M14 30 C14 26 18 22 24 22 C30 22 34 26 34 30" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M10 34 L38 34" stroke="#c41010" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- gear -->
+    <circle cx="20" cy="16" r="4" fill="#c41010" stroke="white" stroke-width="1"/>
+    <circle cx="20" cy="16" r="1.5" fill="white"/>
+    <!-- wrench -->
+    <line x1="27" y1="13" x2="34" y2="20" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="27" cy="13" r="2.5" fill="none" stroke="white" stroke-width="1.5"/>
+  </svg>
+  <div class="logo-text">Advanced Auto Key<span>Automotive Repair</span></div>
+  <div class="topbar-div"></div>
+  <div class="topbar-sp"></div>
+  <div class="topbar-clk"><span class="live-dot" id="liveDot"></span><span id="clock"></span></div>
+  <div id="notif" class="notif hidden" onclick="showPanel('approvals')">🔔 <span id="notifN">0</span> Need Review</div>
+  <div class="usr-sw" onclick="showUserSwitcher()">
+    <div><div class="usr-name" id="uName">Adam</div><div class="usr-role" id="uRole">Service Writer</div></div>
+    <span style="color:#888;margin-left:4px;">▼</span>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <div class="sb-profile">
+    <div class="sb-av" id="sbAv">A</div>
+    <div><div class="sb-nm" id="sbNm">Adam</div><div class="sb-rl" id="sbRl">Service Writer</div></div>
+  </div>
+  <div id="wrNav">
+    <div class="sb-sec">Overview</div>
+    <div class="ni active" id="nav-dashboard" onclick="showPanel('dashboard')"><span class="nic">📊</span>Dashboard</div>
+    <div class="sb-sec">Jobs</div>
+    <div class="ni" id="nav-newjob" onclick="showPanel('newjob')"><span class="nic">➕</span>New Job</div>
+    <div class="ni" id="nav-board" onclick="showPanel('board')"><span class="nic">📋</span>Job Board<span class="nbg" id="badgeB">0</span></div>
+    <div class="ni" id="nav-approvals" onclick="showPanel('approvals')"><span class="nic">✅</span>Needs Review<span class="nbg" id="badgeA">0</span></div>
+    <div class="ni" id="nav-jobs" onclick="showPanel('jobs')"><span class="nic">🗂</span>All Work Orders</div>
+    <div class="ni" id="nav-invoices" onclick="showPanel('invoices')"><span class="nic">🧾</span>Invoices<span class="nbg" id="badgeInv" style="background:var(--grn);display:none;">0</span></div>
+    <div class="sb-sec">Tools</div>
+    <div class="ni" id="nav-schedule" onclick="showPanel('schedule')"><span class="nic">📅</span>Schedule</div>
+    <div class="ni" id="nav-codes" onclick="showPanel('codes')"><span class="nic">📖</span>Service Codes</div>
+    <div class="ni" id="nav-payroll" onclick="showPanel('payroll')"><span class="nic">💵</span>Pay Periods</div>
+    <div class="ni" id="nav-settings" onclick="showPanel('settings')"><span class="nic">⚙</span>Settings</div>
+  </div>
+  <div id="mNav" style="display:none;">
+    <div class="sb-sec">My Work</div>
+    <div class="ni active" id="nav-mech-dash" onclick="showPanel('mech-dash')"><span class="nic">🔧</span>My Jobs</div>
+    <div class="ni" id="nav-mech-hours" onclick="showPanel('mech-hours')"><span class="nic">⏱</span>My Hours</div>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+<div class="panel active" id="panel-dashboard">
+  <div class="ph"><div><div class="pt">Dashboard</div><div class="ps" id="dashSub"></div></div><div class="pa"><button class="btn bp" onclick="showPanel('newjob')">＋ New Job</button></div></div>
+  <div class="stats-row" id="statsRow"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div><div class="slbl">⚠ Needs Attention</div><div id="attnList" style="display:flex;flex-direction:column;gap:7px;"></div></div>
+    <div><div class="slbl">📅 Today's Schedule</div><div id="todayList" style="display:flex;flex-direction:column;gap:7px;"></div></div>
+  </div>
+</div>
+
+<!-- NEW JOB -->
+<div class="panel" id="panel-newjob">
+  <div class="ph"><div><div class="pt">New Work Order</div><div class="ps">Fill out this form — it goes straight to the mechanic</div></div></div>
+  <div style="max-width:700px;">
+    <div class="wc wc-r">
+      <div class="wch"><strong style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;">👤 Customer & Vehicle</strong></div>
+      <div class="wcb">
+        <div class="fg2">
+          <div class="fg"><label>Customer Name *</label><input type="text" id="nj-cu" placeholder="e.g. James Hargrove"></div>
+          <div class="fg"><label>Phone</label><input type="tel" id="nj-ph" placeholder="(610) 555-0000"></div>
+        </div>
+        <div class="fg"><label>Email</label><input type="email" id="nj-em" placeholder="customer@email.com"></div>
+        <div class="fg3">
+          <div class="fg"><label>Year</label><input type="number" id="nj-yr" placeholder="2020" min="1950" max="2030"></div>
+          <div class="fg"><label>Make</label><input type="text" id="nj-mk" placeholder="Ford"></div>
+          <div class="fg"><label>Model</label><input type="text" id="nj-mo" placeholder="F-150"></div>
+        </div>
+        <div class="fg2">
+          <div class="fg"><label>License Plate</label><input type="text" id="nj-pl" placeholder="ABC-1234"></div>
+          <div class="fg"><label>Mileage</label><input type="number" id="nj-mi" placeholder="75000"></div>
+        </div>
+      </div>
+    </div>
+    <div class="wc wc-r">
+      <div class="wch"><strong style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;">🔧 Service Request</strong></div>
+      <div class="wcb">
+        <div class="fg"><label>Customer Complaint / Requested Service *</label><textarea id="nj-co" placeholder="Describe what the customer is reporting or requesting…" style="min-height:90px;"></textarea></div>
+        <div class="fg2">
+          <div class="fg"><label>Assign To *</label><select id="nj-me"><option value="">Select mechanic…</option></select></div>
+          <div class="fg"><label>Appointment Date</label><input type="date" id="nj-dt"></div>
+        </div>
+        <div class="fg2">
+          <div class="fg"><label>Appointment Time</label><input type="time" id="nj-ti" value="09:00"></div>
+          <div class="fg"><label>Priority</label><select id="nj-pr"><option>Normal</option><option>Urgent</option><option>Wait & Drive</option></select></div>
+        </div>
+        <div class="fg"><label>Internal Notes (not shown to mechanic)</label><textarea id="nj-in" style="min-height:50px;" placeholder="Internal desk notes…"></textarea></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn bp" onclick="createJob()" style="font-size:15px;padding:11px 24px;">📤 Send to Mechanic</button>
+      <button class="btn bg" onclick="showPanel('dashboard')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB BOARD -->
+<div class="panel" id="panel-board">
+  <div class="ph"><div><div class="pt">Job Board</div></div><div class="pa"><button class="btn bp" onclick="showPanel('newjob')">＋ New Job</button></div></div>
+  <div class="bcols" id="boardCols"></div>
+</div>
+
+<!-- APPROVALS -->
+<div class="panel" id="panel-approvals">
+  <div class="ph"><div><div class="pt">Needs Your Review</div><div class="ps">Approve or decline each repair individually</div></div></div>
+  <div id="approvalsList"></div>
+</div>
+
+<!-- ALL JOBS -->
+<div class="panel" id="panel-jobs">
+  <div class="ph">
+    <div><div class="pt">All Work Orders</div></div>
+    <div class="pa">
+      <select id="stFil" onchange="renderJT()" style="width:160px;"><option value="">All Statuses</option><option>New</option><option>Evaluation</option><option>Review Required</option><option>In Progress</option><option>Complete</option></select>
+      <button class="btn bp" onclick="showPanel('newjob')">＋ New Job</button>
+    </div>
+  </div>
+  <div class="box"><table class="dt"><thead><tr><th>Job #</th><th>Customer</th><th>Vehicle</th><th>Complaint</th><th>Status</th><th>Mechanic</th><th>Date</th><th>Hrs</th><th></th></tr></thead><tbody id="jtBody"></tbody></table></div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="panel" id="panel-schedule">
+  <div class="ph">
+    <div><div class="pt">Schedule</div><div class="ps">Week of <span id="wkLbl"></span></div></div>
+    <div class="pa"><button class="btn bg btn-sm" onclick="prevW()">◀</button><button class="btn bg btn-sm" onclick="nextW()">▶</button></div>
+  </div>
+  <div class="box" style="overflow:auto;"><div id="schedGrid" style="display:grid;min-width:560px;"></div></div>
+</div>
+
+<!-- SERVICE CODES -->
+<div class="panel" id="panel-codes">
+  <div class="ph"><div><div class="pt">Service Code Library</div><div class="ps">Mechanic selects these when building estimates</div></div><div class="pa"><button class="btn bp" onclick="openCodeModal()">＋ Add Code</button></div></div>
+  <div class="box"><table class="dt"><thead><tr><th>Code</th><th>Description</th><th>Default Hrs</th><th>Rate/hr</th><th>Est. Labor</th><th>Category</th><th></th></tr></thead><tbody id="codesBody"></tbody></table></div>
+</div>
+
+<!-- PAY PERIODS -->
+<div class="panel" id="panel-payroll">
+  <div class="ph"><div><div class="pt">Pay Periods</div><div class="ps">Submitted weekly hours based on approved labor estimates</div></div></div>
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;">
+    <div><div class="slbl">Submitted Pay Periods</div><div id="payList" style="display:flex;flex-direction:column;gap:10px;"></div></div>
+    <div>
+      <div class="slbl">Mechanic Rates</div>
+      <div class="psum" id="rateBox"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="panel" id="panel-settings">
+  <div class="ph"><div><div class="pt">Settings</div><div class="ps">Manage team members and roles</div></div></div>
+  <div id="settingsBody"></div>
+</div>
+
+<!-- MECHANIC DASH -->
+<div class="panel" id="panel-mech-dash">
+  <div class="ph"><div><div class="pt" id="mDashT">My Jobs</div><div class="ps">Jobs assigned to you</div></div></div>
+  <div id="mechJobsList"></div>
+</div>
+
+<!-- MECHANIC HOURS -->
+<div class="panel" id="panel-mech-hours">
+  <div class="ph">
+    <div><div class="pt">My Hours</div><div class="ps">Hours are based on approved labor submitted in your estimates</div></div>
+  </div>
+
+  <!-- Summary cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="hrSummaryCards"></div>
+
+  <!-- Filters -->
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+    <div class="slbl" style="margin-bottom:0;">Filter:</div>
+    <select id="hrWkFilter" onchange="renderMechHours()" style="width:180px;">
+      <option value="">All Weeks</option>
+    </select>
+    <select id="hrCatFilter" onchange="renderMechHours()" style="width:180px;">
+      <option value="">All Job Types</option>
+    </select>
+    <select id="hrStatusFilter" onchange="renderMechHours()" style="width:160px;">
+      <option value="">All Statuses</option>
+      <option value="unpaid">Unpaid</option>
+      <option value="paid">Paid</option>
+    </select>
+    <div style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:13px;">
+      Filtered Total: <span id="hrFilteredTotal" style="color:var(--red);font-weight:700;">0.0 hrs</span>
+      &nbsp;·&nbsp; Pay: <span id="hrFilteredPay" style="color:var(--grn);font-weight:700;">$0.00</span>
+    </div>
+  </div>
+
+  <!-- Hours table -->
+  <div class="box" style="margin-bottom:16px;">
+    <table class="dt" id="hrTable">
+      <thead>
+        <tr>
+          <th>Week</th>
+          <th>Job #</th>
+          <th>Customer</th>
+          <th>Vehicle</th>
+          <th>Repair / Service</th>
+          <th>Category</th>
+          <th>Est. Hrs</th>
+          <th>Pay</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="hrBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Weekly rollup -->
+  <div id="hrWeeklyGrid" style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;">
+    <div>
+      <div class="slbl">Weekly Breakdown</div>
+      <div id="hrWeeklyBreakdown" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+    <div>
+      <div class="slbl">Submit Week for Payment</div>
+      <div class="box" style="padding:16px;">
+        <div class="fg">
+          <label>Select Week to Submit</label>
+          <select id="hrSubmitWk" style="margin-bottom:10px;" onchange="onSubmitWkChange()"></select>
+        </div>
+        <div id="hrSubmitPreview" style="margin-bottom:12px;"></div>
+        <button class="btn bp fw" onclick="submitWeekForPay()" style="font-size:15px;padding:12px;">💵 Submit Week for Payment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICES PANEL -->
+<div class="panel" id="panel-invoices">
+  <div class="ph">
+    <div><div class="pt">Invoices</div><div class="ps">Review and send invoices to customers after job completion</div></div>
+  </div>
+  <!-- Ready to invoice -->
+  <div style="margin-bottom:20px;">
+    <div class="slbl">🔔 Ready to Invoice — Jobs Completed, No Invoice Sent</div>
+    <div id="invReadyList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+  <!-- Sent invoices -->
+  <div>
+    <div class="slbl">📨 Sent Invoices</div>
+    <div id="invSentList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mob-nav" id="mobNav">
+  <button class="mob-nav-item active" id="mn-dashboard" onclick="mobNav('dashboard')" style="position:relative;">
+    <span class="mn-icon">📊</span>Home
+  </button>
+  <button class="mob-nav-item" id="mn-board" onclick="mobNav('board')" style="position:relative;">
+    <span class="mn-icon">📋</span>Jobs
+    <span class="mob-nav-dot" id="mnDotB" style="display:none;"></span>
+  </button>
+  <button class="mob-nav-item" id="mn-newjob" onclick="mobNav('newjob')">
+    <span class="mn-icon" style="width:36px;height:36px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin-top:-14px;box-shadow:0 2px 8px rgba(196,16,16,.4);">＋</span>
+    New
+  </button>
+  <button class="mob-nav-item" id="mn-approvals" onclick="mobNav('approvals')" style="position:relative;">
+    <span class="mn-icon">✅</span>Review
+    <span class="mob-nav-dot" id="mnDotA" style="display:none;"></span>
+  </button>
+  <button class="mob-nav-item" id="mn-more" onclick="toggleSidebar()">
+    <span class="mn-icon">☰</span>More
+  </button>
+</nav>
+
+<!-- MECHANIC MOBILE BOTTOM NAV -->
+<nav class="mob-nav" id="mobNavMech" style="display:none;">
+  <button class="mob-nav-item active" id="mn-mech-dash" onclick="mobNavMech('mech-dash')">
+    <span class="mn-icon">🔧</span>My Jobs
+  </button>
+  <button class="mob-nav-item" id="mn-mech-hours" onclick="mobNavMech('mech-hours')">
+    <span class="mn-icon">⏱</span>My Hours
+  </button>
+  <button class="mob-nav-item" id="mn-mech-sw" onclick="toggleSidebar()">
+    <span class="mn-icon">☰</span>Menu
+  </button>
+</nav>
+
+<!-- PRINT AREA (hidden, shown on print) -->
+<div id="printArea"></div>
+
+<!-- MODAL: Job Detail -->
+<div class="mb" id="mDet">
+  <div class="modal mlg">
+    <div class="mh"><div><div class="mt" id="dT"></div><div class="ms" id="dS"></div></div><button class="mc" onclick="CM('mDet')">✕</button></div>
+    <div class="mbody" id="dBody"></div>
+    <div class="mfoot" id="dFoot"></div>
+  </div>
+</div>
+
+<!-- MODAL: Submit RO -->
+<div class="mb" id="mRO">
+  <div class="modal mlg">
+    <div class="mh"><div><div class="mt">Submit Estimate</div><div class="ms" id="roSub"></div></div><button class="mc" onclick="CM('mRO')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="roJId">
+      <div style="background:#fff8e8;border:1.5px solid var(--gld);border-radius:5px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#7a5a00;">
+        💡 <strong>Click a code to add it.</strong> Adjust hours if needed, add parts cost, then write what you found and submit.
+      </div>
+      <div class="slbl">Quick-Select Repair Codes</div>
+      <div class="cg" id="roCG"></div>
+      <hr>
+      <div class="slbl">Estimate Lines</div>
+      <div style="display:grid;grid-template-columns:2.5fr 1fr 1fr auto;gap:7px;margin-bottom:5px;">
+        <span class="mono">DESCRIPTION</span><span class="mono">HOURS</span><span class="mono">PARTS $</span><span></span>
+      </div>
+      <div id="roLines"></div>
+      <button class="btn bg btn-sm" style="margin-top:4px;" onclick="addROLine()">＋ Custom Repair</button>
+      <hr>
+      <div class="fg"><label>What Did You Find? *</label><textarea id="roDiag" style="min-height:90px;" placeholder="Describe what you found. Be specific — this goes to the service writer."></textarea></div>
+      <div style="background:#f8f8f8;border:1px solid var(--bdr);border-radius:6px;padding:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;">
+          <div><div class="mono" style="margin-bottom:5px;">LABOR HRS</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--blu);" id="roTH">0.0</div></div>
+          <div><div class="mono" style="margin-bottom:5px;">PARTS</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--gld);" id="roTP">$0.00</div></div>
+          <div><div class="mono" style="margin-bottom:5px;">LABOR $</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--red);" id="roTL">$0.00</div></div>
+        </div>
+        <div style="text-align:center;margin-top:12px;border-top:1px solid var(--bdr);padding-top:12px;">
+          <div class="mono">GRAND TOTAL</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:var(--grn);" id="roGrand">$0.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn bg" onclick="CM('mRO')">Cancel</button><button class="btn bp" style="font-size:14px;padding:11px 22px;" onclick="submitRO()">📤 Submit to Service Writer</button></div>
+  </div>
+</div>
+
+<!-- MODAL: User Switcher -->
+<div class="mb" id="mUser">
+  <div class="modal" style="width:400px;">
+    <div class="mh"><div><div class="mt">Switch User</div><div class="ms">Who is at this terminal?</div></div><button class="mc" onclick="CM('mUser')">✕</button></div>
+    <div class="mbody">
+      <div class="slbl">Service Writers</div><div id="wList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;"></div>
+      <div class="slbl">Mechanics</div><div id="mList" style="display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Service Code -->
+<div class="mb" id="mCode">
+  <div class="modal" style="width:460px;">
+    <div class="mh"><div><div class="mt" id="mCodeT">Add Service Code</div></div><button class="mc" onclick="CM('mCode')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="scId">
+      <div class="fg2"><div class="fg"><label>Code</label><input type="text" id="scNm" placeholder="e.g. BRAKE-F"></div><div class="fg"><label>Category</label><select id="scCat"><option>Brakes</option><option>Engine</option><option>Transmission</option><option>Tires / Wheels</option><option>Suspension</option><option>Electrical</option><option>AC / Heat</option><option>Exhaust</option><option>Inspection</option><option>Fluids</option><option>General</option><option>Other</option></select></div></div>
+      <div class="fg"><label>Description</label><input type="text" id="scDs" placeholder="e.g. Front Brake Pad & Rotor Replacement"></div>
+      <div class="fg2"><div class="fg"><label>Default Hours</label><input type="number" id="scHr" step="0.25" placeholder="2.0" min="0.25"></div><div class="fg"><label>Rate / hr ($)</label><input type="number" id="scRt" placeholder="115" min="0"></div></div>
+    </div>
+    <div class="mfoot"><button class="btn bg" onclick="CM('mCode')">Cancel</button><button class="btn bp" onclick="saveCode()">Save Code</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Add User -->
+<div class="mb" id="mAU">
+  <div class="modal" style="width:400px;">
+    <div class="mh"><div><div class="mt">Add Team Member</div></div><button class="mc" onclick="CM('mAU')">✕</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Name *</label><input type="text" id="auNm" placeholder="Full name"></div>
+      <div class="fg"><label>Role *</label><select id="auRl"><option value="writer">Service Writer</option><option value="mechanic">Mechanic</option></select></div>
+      <div class="fg"><label>Hourly Rate (mechanics)</label><input type="number" id="auRt" placeholder="25" step="0.5" min="0"></div>
+    </div>
+    <div class="mfoot"><button class="btn bg" onclick="CM('mAU')">Cancel</button><button class="btn bp" onclick="saveUser()">Add</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Invoice Review & Send -->
+<div class="mb" id="mInv">
+  <div class="modal mlg" style="width:900px;">
+    <div class="mh">
+      <div><div class="mt">Review & Send Invoice</div><div class="ms" id="invSub"></div></div>
+      <button class="mc" onclick="CM('mInv')">✕</button>
+    </div>
+    <div class="mbody">
+      <input type="hidden" id="invJid">
+
+      <!-- CUSTOMER CONTACT -->
+      <div style="background:#f0f8ff;border:1.5px solid var(--blu);border-radius:6px;padding:14px 16px;margin-bottom:16px;">
+        <div class="slbl" style="color:var(--blu);margin-bottom:10px;">📬 Send To</div>
+        <div class="fg2">
+          <div class="fg"><label>Customer Email</label><input type="email" id="invEmail" placeholder="customer@email.com"></div>
+          <div class="fg"><label>Customer Phone (SMS)</label><input type="tel" id="invPhone" placeholder="(610) 555-0000"></div>
+        </div>
+        <div class="fg"><label>Message to Customer (optional)</label><textarea id="invMsg" style="min-height:52px;" placeholder="e.g. Your vehicle is ready for pickup! Please review the invoice below."></textarea></div>
+      </div>
+
+      <!-- INVOICE PREVIEW / EDIT -->
+      <div style="background:#fff;border:2px solid var(--bdr);border-radius:8px;overflow:hidden;">
+        <!-- Invoice Header -->
+        <div style="background:#1a1a1a;padding:20px 24px;display:flex;align-items:center;gap:16px;">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:#fff;letter-spacing:2px;">ADVANCED AUTO KEY</div>
+            <div style="font-size:11px;color:#aaa;letter-spacing:1px;">AUTOMOTIVE REPAIR</div>
+            <div style="font-size:11px;color:#888;margin-top:4px;">Tel: (610) 555-0100 · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="84f7e1f6f2ede7e1c4e5e0f2e5eae7e1e0e5f1f0ebefe1fdaae7ebe9">[email&#160;protected]</a></div>
+          </div>
+          <div style="margin-left:auto;text-align:right;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--red);letter-spacing:2px;">INVOICE</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#aaa;" id="invNum"></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#888;" id="invDate"></div>
+          </div>
+        </div>
+
+        <!-- Customer / Vehicle Info -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid var(--bdr);">
+          <div style="padding:16px 20px;border-right:1px solid var(--bdr);">
+            <div class="slbl" style="margin-bottom:8px;">Bill To</div>
+            <div style="font-weight:700;font-size:15px;" id="invCustName"></div>
+            <div style="font-size:12px;color:var(--tx2);" id="invCustContact"></div>
+          </div>
+          <div style="padding:16px 20px;">
+            <div class="slbl" style="margin-bottom:8px;">Vehicle</div>
+            <div style="font-weight:700;font-size:15px;" id="invVehicle"></div>
+            <div style="font-size:12px;color:var(--tx2);" id="invVehicleSub"></div>
+          </div>
+        </div>
+
+        <!-- Service Complaint -->
+        <div style="padding:12px 20px;background:#fafafa;border-bottom:1px solid var(--bdr);">
+          <span style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);font-family:'Barlow Condensed',sans-serif;">Services Requested: </span>
+          <span style="font-size:13px;" id="invComplaint"></span>
+        </div>
+
+        <!-- Line Items — EDITABLE -->
+        <div style="padding:0 0 4px 0;">
+          <div class="inv-row-edit inv-row-hd">
+            <div>Description</div><div>Qty / Hrs</div><div>Unit Price</div><div>Total</div>
+          </div>
+          <div id="invLineItems"></div>
+        </div>
+
+        <!-- Totals -->
+        <div style="padding:16px 20px;border-top:2px solid var(--bdr);">
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;max-width:320px;margin-left:auto;">
+            <div style="font-size:13px;color:var(--tx2);padding:4px 0;">Labor Subtotal</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;text-align:right;padding:4px 0;" id="invSubLabor">$0.00</div>
+            <div style="font-size:13px;color:var(--tx2);padding:4px 0;">Parts Subtotal</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;text-align:right;padding:4px 0;" id="invSubParts">$0.00</div>
+            <div style="font-size:13px;color:var(--tx2);padding:4px 0;">Tax <input type="number" id="invTaxRate" value="0" min="0" max="20" step="0.1" style="width:50px;padding:2px 5px;font-size:12px;" oninput="recalcInvTotals()"> %</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;text-align:right;padding:4px 0;" id="invTaxAmt">$0.00</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:1px;padding:8px 0;border-top:2px solid var(--bdr);margin-top:4px;">Total Due</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--red);text-align:right;padding:8px 0;border-top:2px solid var(--bdr);margin-top:4px;" id="invGrandTotal">$0.00</div>
+          </div>
+        </div>
+
+        <!-- Notes field -->
+        <div style="padding:12px 20px;border-top:1px solid var(--bdr);background:#fafafa;">
+          <label style="display:block;margin-bottom:5px;">Invoice Notes / Payment Terms</label>
+          <textarea id="invNotes" style="min-height:52px;font-size:13px;" placeholder="e.g. Payment due upon receipt. Thank you for your business!">Payment due upon receipt. Thank you for choosing Advanced Auto Key!</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn bg" onclick="previewInvoicePrint()">🖨 Print Preview</button>
+      <button class="btn bg" onclick="CM('mInv')">Cancel</button>
+      <button class="btn bsuc" onclick="sendInvoiceEmail()">📧 Send via Email</button>
+      <button class="btn bp" onclick="sendInvoiceSMS()">💬 Send via SMS</button>
+    </div>
+  </div>
+</div>
+
+<div class="twrap" id="tw"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── FIREBASE CONFIG ───────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyA6ewSSdwTHvjGrpiqQ6W4RdH2J92qRd_o",
+  authDomain: "advanced-auto-key-19a9b.firebaseapp.com",
+  projectId: "advanced-auto-key-19a9b",
+  storageBucket: "advanced-auto-key-19a9b.firebasestorage.app",
+  messagingSenderId: "629463442619",
+  appId: "1:629463442619:web:4e86ed75ce3cd52110759e"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ── LOCAL STATE (synced from Firestore) ──
+let users=[
+  {id:'u1',name:'Adam',role:'writer',rate:0},
+  {id:'u2',name:'Joe',role:'writer',rate:0},
+  {id:'u3',name:'Bob',role:'mechanic',rate:28},
+];
+let cu=users[0];
+
+let codes=[
+  {id:'sc1',name:'OIL-FULL',desc:'Full Synthetic Oil & Filter Change',hrs:.75,rate:115,cat:'Fluids'},
+  {id:'sc2',name:'OIL-CONV',desc:'Conventional Oil & Filter Change',hrs:.5,rate:115,cat:'Fluids'},
+  {id:'sc3',name:'BRAKE-F',desc:'Front Brake Pads & Rotors',hrs:2.0,rate:115,cat:'Brakes'},
+  {id:'sc4',name:'BRAKE-R',desc:'Rear Brake Pads & Rotors',hrs:1.75,rate:115,cat:'Brakes'},
+  {id:'sc5',name:'BRAKE-4',desc:'Four-Wheel Brake Job',hrs:3.5,rate:115,cat:'Brakes'},
+  {id:'sc6',name:'BRAKE-PAD-F',desc:'Front Brake Pads Only',hrs:1.0,rate:115,cat:'Brakes'},
+  {id:'sc7',name:'TIRE-ROT',desc:'Tire Rotation & Balance',hrs:.75,rate:115,cat:'Tires / Wheels'},
+  {id:'sc8',name:'ALIGN',desc:'Four-Wheel Alignment',hrs:1.0,rate:115,cat:'Tires / Wheels'},
+  {id:'sc9',name:'DIAG',desc:'Engine Diagnostic Scan',hrs:1.0,rate:115,cat:'Engine'},
+  {id:'sc10',name:'STATE-INSP',desc:'State Safety Inspection',hrs:1.0,rate:115,cat:'Inspection'},
+  {id:'sc11',name:'USED-CAR',desc:'Used Car Pre-Purchase Inspection',hrs:1.5,rate:115,cat:'Inspection'},
+  {id:'sc12',name:'COIL',desc:'Ignition Coil Replacement (each)',hrs:.75,rate:115,cat:'Engine'},
+  {id:'sc13',name:'PLUGS',desc:'Spark Plug Set Replacement',hrs:1.0,rate:115,cat:'Engine'},
+  {id:'sc14',name:'STRUT-F',desc:'Front Strut Replacement (pair)',hrs:3.0,rate:115,cat:'Suspension'},
+  {id:'sc15',name:'STRUT-R',desc:'Rear Strut Replacement (pair)',hrs:2.5,rate:115,cat:'Suspension'},
+  {id:'sc16',name:'AC-RCHG',desc:'AC System Recharge',hrs:.75,rate:115,cat:'AC / Heat'},
+  {id:'sc17',name:'TRANS-SVC',desc:'Transmission Fluid Service',hrs:1.5,rate:115,cat:'Transmission'},
+  {id:'sc18',name:'BATTERY',desc:'Battery Replacement',hrs:.5,rate:115,cat:'Electrical'},
+];
+
+const today=new Date();
+const d2s=d=>d.toISOString().split('T')[0];
+const todStr=d2s(today);
+const ystStr=d2s(new Date(today-86400000));
+const tomStr=d2s(new Date(today.getTime()+86400000));
+
+// jobs and payPeriods are now synced from Firestore
+let jobs=[];
+let payPeriods=[];
+let jCtr=1000; // will be set from DB
+let scCtr=19,uCtr=4,pyCtr=1,wkOff=0;
+let roLines=[];
+let invLineData=[];
+let invCtr=1000;
+
+// ── FIRESTORE HELPERS ─────────────────
+function showConnStatus(msg,type,duration=2500){
+  const el=document.getElementById('connStatus');
+  if(!el)return;
+  el.textContent=msg;
+  el.className='show '+(type||'');
+  clearTimeout(el._t);
+  if(duration>0) el._t=setTimeout(()=>el.className='',duration);
+}
+function setLive(on){
+  const dot=document.getElementById('liveDot');
+  if(dot) dot.className='live-dot'+(on?' live':'');
+}
+
+// Save a job to Firestore
+async function saveJobDB(j){
+  try{
+    showConnStatus('Saving…','sync');
+    await db.collection('jobs').doc(j.id).set(j);
+    showConnStatus('✓ Saved','ok');
+  }catch(e){
+    showConnStatus('⚠ Save failed — check connection','err',5000);
+    console.error('Firestore write error:',e);
+  }
+}
+
+// Save pay period to Firestore
+async function savePayPeriodDB(pp){
+  try{
+    await db.collection('payPeriods').doc(pp.id).set(pp);
+  }catch(e){console.error('Firestore payPeriod write error:',e);}
+}
+
+// Generate a unique job ID using Firestore counter doc
+async function getNextJobId(){
+  const ref=db.collection('meta').doc('counters');
+  try{
+    const result=await db.runTransaction(async t=>{
+      const doc=await t.get(ref);
+      const next=(doc.exists?doc.data().jCtr||1000:1000)+1;
+      t.set(ref,{jCtr:next},{merge:true});
+      return next;
+    });
+    return 'J-'+String(result).padStart(4,'0');
+  }catch(e){
+    // fallback to local counter
+    return 'J-'+String(jCtr++).padStart(4,'0');
+  }
+}
+
+// ── INIT ──────────────────────────────
+function init(){
+  setInterval(()=>{
+    const n=new Date();
+    const el=document.getElementById('clock');
+    if(el)el.textContent=n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  },1000);
+  document.querySelectorAll('.mb').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+  startFirestoreListeners();
+}
+
+function startFirestoreListeners(){
+  const loadMsg=document.getElementById('loadMsg');
+  const errEl=document.getElementById('loadErr');
+  const spinner=document.querySelector('.load-spinner');
+
+  // Show debug steps on screen
+  function dbg(msg){
+    console.log('[AAK]',msg);
+    if(loadMsg) loadMsg.textContent=msg;
+  }
+
+  dbg('Step 1: Starting Firebase listeners…');
+
+  // Timeout — 15s
+  const timeout=setTimeout(()=>{
+    const ls=document.getElementById('loadScreen');
+    if(ls&&!ls.classList.contains('fade')){
+      if(spinner) spinner.style.display='none';
+      if(errEl){
+        errEl.style.display='block';
+        errEl.innerHTML=`Timed out after 15 seconds.<br><br>
+          Open browser Console (F12) and look for red errors.<br><br>
+          <button onclick="location.reload()" style="margin-top:4px;background:#c41010;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:700;">↺ Retry</button>`;
+      }
+    }
+  }, 15000);
+
+  dbg('Step 2: Connecting to Firestore…');
+
+  let firstLoad=true;
+  db.collection('jobs').onSnapshot(snapshot=>{
+    clearTimeout(timeout);
+    jobs=snapshot.docs.map(d=>d.data());
+    jobs.sort((a,b)=>{
+      const ta=a.createdAt||a.dt||'';
+      const tb=b.createdAt||b.dt||'';
+      return tb.localeCompare(ta);
+    });
+    setLive(true);
+    if(firstLoad){
+      firstLoad=false;
+      const ls=document.getElementById('loadScreen');
+      if(ls){ls.classList.add('fade');setTimeout(()=>{ls.style.display='none';},400);}
+      setUser(users[0]);
+    } else {
+      ra();
+      showConnStatus('🔄 Updated','ok',1800);
+    }
+  }, err=>{
+    clearTimeout(timeout);
+    console.error('[AAK] Firestore error:',err);
+    setLive(false);
+    const ls=document.getElementById('loadScreen');
+    if(ls&&!ls.classList.contains('fade')){
+      if(spinner) spinner.style.display='none';
+      if(loadMsg) loadMsg.textContent='';
+      if(errEl){
+        errEl.style.display='block';
+        errEl.innerHTML=`<strong>Firebase Error:</strong><br>${err.code||''}: ${err.message||'Unknown'}<br><br>
+          <button onclick="location.reload()" style="margin-top:6px;background:#c41010;color:#fff;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:700;">↺ Retry</button>`;
+      }
+    } else {
+      showConnStatus('⚠ Connection lost','err',0);
+    }
+  });
+
+  db.collection('payPeriods').onSnapshot(snapshot=>{
+    payPeriods=snapshot.docs.map(d=>d.data());
+    payPeriods.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+    if(document.getElementById('panel-payroll')?.classList.contains('active')) renderPayroll();
+  }, err=>console.error('[AAK] payPeriods error:',err));
+}
+
+function ra(){renderStats();renderBoard();renderApprovals();renderJT();renderSchedule();renderCodes();renderPayroll();renderSettings();renderMechDash();renderMechHours();renderAttn();renderToday();updBadges();renderInvoices();}
+
+// Hook up submit week preview when selection changes (called from HTML onchange)
+function onSubmitWkChange(){
+  const mn=cu.role==='mechanic'?cu.name:users.find(u=>u.role==='mechanic')?.name||'Bob';
+  updSubmitPreview(mn);
+}
+
+// ── USER ──────────────────────────────
+function setUser(u){
+  cu=u;
+  document.getElementById('uName').textContent=u.name;
+  document.getElementById('uRole').textContent=u.role==='writer'?'Service Writer':'Mechanic';
+  document.getElementById('sbNm').textContent=u.name;
+  document.getElementById('sbRl').textContent=u.role==='writer'?'Service Writer':'Mechanic';
+  document.getElementById('sbAv').textContent=u.name[0];
+  document.getElementById('sbAv').style.background=u.role==='writer'?'var(--red)':'var(--blu)';
+  document.getElementById('wrNav').style.display=u.role==='writer'?'block':'none';
+  document.getElementById('mNav').style.display=u.role==='mechanic'?'block':'none';
+  // Populate mechanic select for new job
+  const msel=document.getElementById('nj-me');
+  if(msel){msel.innerHTML='<option value="">Select mechanic…</option>'+users.filter(x=>x.role==='mechanic').map(x=>`<option value="${x.name}">${x.name}</option>`).join('');}
+  if(u.role==='mechanic')showPanel('mech-dash');
+  else showPanel('dashboard');
+  updMobNavVisibility();
+  ra();
+}
+
+function showUserSwitcher(){
+  const wr=users.filter(u=>u.role==='writer');
+  const me=users.filter(u=>u.role==='mechanic');
+  const mk=(u,ac)=>`<div onclick="setUser(users.find(x=>x.id==='${u.id}'));CM('mUser')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;cursor:pointer;border:1.5px solid ${cu.id===u.id?(u.role==='writer'?'var(--red)':'var(--blu)'):'var(--bdr)'};background:${cu.id===u.id?(u.role==='writer'?'var(--rdim)':'var(--bdim)'):'#f8f8f8'};">
+    <div class="uav ${u.role==='writer'?'uaw':'uam'}">${u.name[0]}</div>
+    <div><div style="font-weight:700;">${u.name}</div><div style="font-size:11px;color:var(--tx3);">${u.role==='writer'?'Service Writer':'Mechanic'}</div></div>
+    ${cu.id===u.id?`<span style="margin-left:auto;color:${u.role==='writer'?'var(--red)':'var(--blu)'};font-size:18px;">●</span>`:''}
+  </div>`;
+  document.getElementById('wList').innerHTML=wr.map(u=>mk(u,true)).join('');
+  document.getElementById('mList').innerHTML=me.map(u=>mk(u,false)).join('');
+  OM('mUser');
+}
+
+// ── PANEL NAV ────────────────────────
+function showPanel(n){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('panel-'+n);if(el)el.classList.add('active');
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  const nav=document.getElementById('nav-'+n);if(nav)nav.classList.add('active');
+  if(n==='mech-hours')renderMechHours();
+  if(n==='settings')renderSettings();
+  if(n==='payroll')renderPayroll();
+  if(n==='invoices')renderInvoices();
+  if(n==='newjob'){
+    if(!editingJobId){
+      // Only reset form if not in edit mode
+      const btn=document.querySelector('#panel-newjob .btn.bp');
+      if(btn) btn.textContent='📤 Send to Mechanic';
+      const hdr=document.querySelector('#panel-newjob .pt');
+      if(hdr) hdr.textContent='New Work Order';
+    }
+    const msel=document.getElementById('nj-me');
+    if(msel)msel.innerHTML='<option value="">Select mechanic…</option>'+users.filter(x=>x.role==='mechanic').map(x=>`<option value="${x.name}">${x.name}</option>`).join('');
+    const dtel=document.getElementById('nj-dt');if(dtel&&!dtel.value)dtel.value=todStr;
+  }
+  // Mobile: close sidebar, update bottom nav active state
+  closeSidebar();
+  updMobNav(n);
+}
+
+// ── STATS ────────────────────────────
+function renderStats(){
+  const nw=jobs.filter(j=>j.status==='New').length;
+  const ev=jobs.filter(j=>j.status==='Evaluation').length;
+  const rv=jobs.filter(j=>j.status==='Review Required').length;
+  const dn=jobs.filter(j=>j.status==='Complete').length;
+  document.getElementById('statsRow').innerHTML=`
+    <div class="sc ca" onclick="showPanel('board')"><div class="sl">Sent to Mechanic</div><div class="sv">${nw}</div><div class="ss">Waiting to start</div></div>
+    <div class="sc cb" onclick="showPanel('board')"><div class="sl">In Evaluation</div><div class="sv">${ev}</div><div class="ss">Mechanic working</div></div>
+    <div class="sc cc" onclick="showPanel('approvals')"><div class="sl">Needs Review</div><div class="sv">${rv}</div><div class="ss">Estimate returned</div></div>
+    <div class="sc cd" onclick="showPanel('jobs')"><div class="sl">Completed</div><div class="sv">${dn}</div><div class="ss">All time</div></div>`;
+}
+
+// ── BOARD ────────────────────────────
+const COLS=[{k:'New',l:'Sent to Mechanic',c:'#1a55a0'},{k:'Evaluation',l:'Under Evaluation',c:'#b07800'},{k:'Review Required',l:'Estimate Returned',c:'#b85a00'},{k:'In Progress',l:'In Progress',c:'var(--red)'}];
+function renderBoard(){
+  document.getElementById('boardCols').innerHTML=COLS.map(col=>{
+    const cj=jobs.filter(j=>j.status===col.k);
+    return`<div class="bc"><div class="bch"><div class="bcd" style="background:${col.c}"></div>${col.l}<div class="bcn">${cj.length}</div></div><div class="bcb">${cj.map(jCardH).join('')||'<div class="empty" style="padding:16px;font-size:12px;">—</div>'}</div></div>`;
+  }).join('');
+}
+const stToC={New:'j-new',Evaluation:'j-ev','Review Required':'j-rv','In Progress':'j-ip',Complete:'j-co'};
+function jCardH(j){
+  return`<div class="jcard ${stToC[j.status]||''}" onclick="openDet('${j.id}')">
+    <div class="jcid">${j.id} · ${j.createdBy}</div>
+    <div class="jccu">${j.cu}</div>
+    <div class="jcvh">${j.yr||''} ${j.mk||''} ${j.mo||''}</div>
+    <div class="jcsv">${j.co.substring(0,55)}${j.co.length>55?'…':''}</div>
+    <div class="jcm">
+      ${j.pr==='Urgent'?'<span class="tag" style="background:#fde8e8;color:var(--red);">⚡ Urgent</span>':''}
+      ${j.mech?`<span class="tag" style="background:var(--bdim);color:var(--blu);">🔧 ${j.mech}</span>`:''}
+      <span class="jct">${j.dt===todStr?'Today '+j.ti:j.dt}</span>
+    </div></div>`;
+}
+
+// ── CREATE / EDIT JOB ────────────────
+async function createJob(){
+  const cu2=document.getElementById('nj-cu').value.trim();
+  const co=document.getElementById('nj-co').value.trim();
+  const me=document.getElementById('nj-me').value;
+  if(!cu2){toast('Customer name is required','err');return;}
+  if(!co){toast('Please describe the complaint or service','err');return;}
+  if(!me){toast('Please assign a mechanic','err');return;}
+
+  const saveBtn=document.querySelector('#panel-newjob .btn.bp');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Saving…';}
+
+  // EDIT MODE
+  if(editingJobId){
+    const j=jobs.find(x=>x.id===editingJobId);
+    if(j){
+      j.cu=cu2;j.ph=document.getElementById('nj-ph').value;j.em=document.getElementById('nj-em').value;
+      j.yr=parseInt(document.getElementById('nj-yr').value)||null;
+      j.mk=document.getElementById('nj-mk').value;j.mo=document.getElementById('nj-mo').value;
+      j.pl=document.getElementById('nj-pl').value;j.mi=parseInt(document.getElementById('nj-mi').value)||null;
+      j.co=co;j.mech=me;j.dt=document.getElementById('nj-dt').value||todStr;
+      j.ti=document.getElementById('nj-ti').value;j.pr=document.getElementById('nj-pr').value;
+      j.iNote=document.getElementById('nj-in').value;
+      await saveJobDB(j);
+      toast(`✅ ${j.id} updated!`);
+    }
+    editingJobId=null;
+  } else {
+    // NEW JOB
+    const jid=await getNextJobId();
+    const j={
+      id:jid,cu:cu2,
+      ph:document.getElementById('nj-ph').value,
+      em:document.getElementById('nj-em').value,
+      yr:parseInt(document.getElementById('nj-yr').value)||null,
+      mk:document.getElementById('nj-mk').value,
+      mo:document.getElementById('nj-mo').value,
+      pl:document.getElementById('nj-pl').value,
+      mi:parseInt(document.getElementById('nj-mi').value)||null,
+      co,mech:me,
+      dt:document.getElementById('nj-dt').value||todStr,
+      ti:document.getElementById('nj-ti').value,
+      pr:document.getElementById('nj-pr').value,
+      status:'New',evStart:null,evEnd:null,
+      createdBy:cu.name,
+      iNote:document.getElementById('nj-in').value,
+      invoice:null,ro:null,
+      createdAt:new Date().toISOString(),
+      thread:[{role:'writer',u:cu.name,txt:`Job created and sent to ${me}. Complaint: ${co}`,ts:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}]
+    };
+    await saveJobDB(j);
+    toast(`✅ ${jid} sent to ${me}!`);
+  }
+
+  // Reset form
+  ['nj-cu','nj-ph','nj-em','nj-yr','nj-mk','nj-mo','nj-pl','nj-mi','nj-co','nj-in'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('nj-me').value='';
+  document.getElementById('nj-pr').value='Normal';
+  // Reset header/button
+  const btn=document.querySelector('#panel-newjob .btn.bp');
+  if(btn){btn.disabled=false;btn.textContent='📤 Send to Mechanic';}
+  const hdr=document.querySelector('#panel-newjob .pt');
+  if(hdr)hdr.textContent='New Work Order';
+  showPanel('board');
+}
+
+// ── JOB DETAIL ───────────────────────
+function openDet(jid){
+  const j=jobs.find(x=>x.id===jid);if(!j)return;
+  document.getElementById('dT').textContent=j.id+' — '+j.cu;
+  document.getElementById('dS').textContent=`${j.yr||''} ${j.mk||''} ${j.mo||''} ${j.pl?'· '+j.pl:''}`.trim();
+  const stM={New:'s-new',Evaluation:'s-ev','Review Required':'s-rv','In Progress':'s-ip',Complete:'s-co'};
+  const isW=cu.role==='writer';
+  const isM=cu.role==='mechanic'&&j.mech===cu.name;
+
+  let roHTML='';
+  if(j.ro){
+    const lines=j.ro.lines;
+    const th=lines.reduce((s,l)=>s+l.hrs,0);
+    const tl=lines.reduce((s,l)=>s+l.hrs*l.rate,0);
+    const tp=lines.reduce((s,l)=>s+(l.parts||0),0);
+    const pend=lines.filter(l=>l.dec==='pending');
+    const isRV=j.status==='Review Required';
+    roHTML=`<hr>
+      <div class="slbl">${isRV&&isW?'🔔 Estimate — Approve Each Repair Below':'Repair Estimate'}</div>
+      <div style="background:#f5f5f5;border-left:3px solid var(--red);padding:10px 12px;border-radius:4px;font-size:13px;line-height:1.6;margin-bottom:12px;">
+        <strong>Findings: </strong>${j.ro.diag}</div>
+      ${lines.map(l=>{
+        const lt=l.hrs*l.rate+(l.parts||0);
+        return`<div class="lc ${l.dec==='accepted'?'lc-acc':l.dec==='declined'?'lc-dec':'lc-pend'}">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:14px;margin-bottom:3px;">${l.desc}</div>
+              ${l.code?`<div class="mono" style="margin-bottom:5px;">${l.code}</div>`:''}
+              <div style="display:flex;gap:14px;font-size:12px;color:var(--tx2);flex-wrap:wrap;">
+                <span>⏱ <strong style="color:var(--blu);">${l.hrs} hrs</strong></span>
+                <span>Labor: <strong>$${(l.hrs*l.rate).toFixed(2)}</strong></span>
+                ${l.parts?`<span>Parts: <strong>$${l.parts.toFixed(2)}</strong></span>`:''}
+                <span style="font-weight:900;color:var(--tx);">Total: $${lt.toFixed(2)}</span>
+              </div>
+            </div>
+            <div>${l.dec==='accepted'?'<span class="dacc">✓ Approved</span>':l.dec==='declined'?'<span class="ddec">✕ Declined</span>':'<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;color:var(--gld);">⏳ Pending</span>'}</div>
+          </div>
+          ${l.dec==='pending'&&isW&&isRV?`<div style="display:flex;gap:7px;margin-top:9px;">
+            <button class="btn bsuc btn-sm" onclick="decL('${j.id}','${l.id}','accepted')">✓ Approve</button>
+            <button class="btn bdng btn-sm" onclick="decL('${j.id}','${l.id}','declined')">✕ Decline</button>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+      <div style="display:flex;justify-content:flex-end;gap:16px;align-items:baseline;padding:10px 0;border-top:2px solid var(--bdr);margin-top:6px;">
+        <span class="mono">TOTAL HRS</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--blu);">${th.toFixed(1)}</span>
+        <span class="mono">PARTS</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--gld);">$${tp.toFixed(2)}</span>
+        <span class="mono">TOTAL</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:var(--red);">$${(tl+tp).toFixed(2)}</span>
+      </div>
+      ${isW&&isRV&&pend.length===0?`<div class="fg" style="margin-top:6px;"><label>Note to Mechanic (optional)</label><textarea id="wNote" style="min-height:50px;" placeholder="Any instructions for ${j.mech}…"></textarea></div>
+        <button class="btn bp fw" onclick="sendDec('${j.id}')">📤 Send Decisions to ${j.mech}</button>`:''}
+      ${isW&&isRV&&pend.length>0?`<div style="background:#fff8e8;border:1.5px solid var(--gld);border-radius:4px;padding:9px 12px;font-size:13px;color:#7a5a00;margin-top:8px;">⚠ ${pend.length} repair(s) still need a decision.</div>`:''}
+      ${j.ro.wrNote?`<div style="background:#e8f5ec;border:1.5px solid var(--grn);border-radius:4px;padding:9px 12px;font-size:13px;margin-top:8px;"><strong>Writer Note: </strong>${j.ro.wrNote}</div>`:''}
+    `;
+  }
+
+  // Eval section for mechanic
+  let evalHTML='';
+  if(isM){
+    if(!j.evStart){
+      evalHTML=`<div style="margin-bottom:12px;"><button class="mbtn mb-go" onclick="startEv('${j.id}')" style="max-width:260px;font-size:15px;"><div class="mbtn-icon">🔍</div>Start Evaluation</button></div>`;
+    } else if(!j.ro){
+      evalHTML=`<div style="background:#e8f5ec;border:1.5px solid var(--grn);border-radius:5px;padding:10px 12px;margin-bottom:12px;font-size:13px;">✓ <strong>Evaluation started</strong> — ${j.evStart}<br><span style="color:var(--tx2);">Use "Submit Estimate" below when ready.</span></div>`;
+    }
+    if(j.ro?.sent){
+      const acc=j.ro.lines.filter(l=>l.dec==='accepted');
+      const dec=j.ro.lines.filter(l=>l.dec==='declined');
+      evalHTML=`<div style="background:#e8f0fe;border:1.5px solid var(--blu);border-radius:5px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--blu);margin-bottom:7px;">📋 Writer Decisions Received</div>
+        <div style="font-size:13px;margin-bottom:3px;"><strong style="color:var(--grn);">✓ Approved (${acc.length}):</strong> ${acc.map(l=>l.desc).join(', ')||'None'}</div>
+        <div style="font-size:13px;"><strong style="color:var(--red);">✕ Declined (${dec.length}):</strong> ${dec.map(l=>l.desc).join(', ')||'None'}</div>
+        ${j.ro.wrNote?`<div style="margin-top:7px;font-size:12px;color:var(--tx2);">Note: <em>${j.ro.wrNote}</em></div>`:''}
+      </div>`;
+    }
+  }
+
+  // Status control for writer
+  const stCtrl=isW?`<div style="margin-top:7px;display:flex;gap:7px;align-items:center;">
+    <select id="dSt" style="width:180px;">${['New','Evaluation','Review Required','In Progress','Complete'].map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}</select>
+    <button class="btn bg btn-sm" onclick="updSt('${j.id}')">Update</button>
+  </div>`:'';
+
+  document.getElementById('dBody').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div><div class="mono">STATUS</div><span class="st ${stM[j.status]||''}" style="margin-top:5px;display:inline-block;">${j.status}</span>${stCtrl}</div>
+      <div><div class="mono">MECHANIC</div><div style="font-weight:700;margin-top:5px;">${j.mech||'—'}</div></div>
+      <div><div class="mono">APPOINTMENT</div><div style="font-weight:700;margin-top:5px;">${j.dt} ${j.ti?'@ '+j.ti:''}</div></div>
+      <div><div class="mono">CUSTOMER</div><div style="font-weight:700;margin-top:5px;">${j.cu}</div>${j.ph?`<div style="font-size:11px;color:var(--tx2);">${j.ph}</div>`:''}</div>
+      <div><div class="mono">VEHICLE</div><div style="font-weight:700;margin-top:5px;">${j.yr||''} ${j.mk||''} ${j.mo||''}</div><div class="mono">${j.pl||''} ${j.mi?'· '+j.mi.toLocaleString()+' mi':''}</div></div>
+      <div><div class="mono">PRIORITY</div><div style="font-weight:700;margin-top:5px;color:${j.pr==='Urgent'?'var(--red)':'var(--tx)'};">${j.pr}</div></div>
+    </div>
+    <div style="background:#fff5f5;border-left:4px solid var(--red);padding:10px 12px;border-radius:4px;font-size:13px;line-height:1.5;margin-bottom:6px;"><strong style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);">Complaint: </strong>${j.co}</div>
+    ${j.evStart?`<div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">🔍 Eval started: ${j.evStart}${j.evEnd?' · Completed: '+j.evEnd:''}</div>`:''}
+    ${evalHTML}${roHTML}
+    <hr>
+    <div class="slbl">💬 Notes</div>
+    <div class="nt" id="nThr">${(j.thread||[]).map(n=>`<div class="note ${n.role}"><div class="nmeta">${n.role==='mechanic'?'🔧 '+n.u:'📋 '+n.u} · ${n.ts}</div><div class="ntext">${n.txt}</div></div>`).join('')}</div>
+    <div class="nirow">
+      <input type="text" id="nInp" placeholder="${cu.role==='mechanic'?'Note for service writer…':'Note for mechanic…'}" onkeydown="if(event.key==='Enter')addNote('${j.id}')">
+      <button class="btn bg btn-sm" onclick="addNote('${j.id}')">Send</button>
+    </div>
+  `;
+
+  let fBtns=`<button class="btn bg" onclick="CM('mDet')">Close</button>`;
+  if(isW) fBtns=`<button class="btn bg btn-sm" onclick="openEdit('${j.id}')">✏ Edit</button>`+fBtns;
+  if(isW&&j.status==='Complete'&&j.ro) fBtns=`<button class="btn bsuc" onclick="CM('mDet');openInvoiceModal('${j.id}')">🧾 ${j.invoice?'View Invoice':'Generate Invoice'}</button>`+fBtns;
+  if(isM&&j.evStart&&!j.ro) fBtns=`<button class="btn bp" onclick="CM('mDet');openRO('${j.id}')">📋 Submit Estimate</button>`+fBtns;
+  if(isM&&j.ro?.sent&&j.status!=='Complete') fBtns=`<button class="btn bsuc" onclick="markDone('${j.id}')">✅ Mark Complete</button>`+fBtns;
+  document.getElementById('dFoot').innerHTML=fBtns;
+  OM('mDet');
+}
+
+function startEv(jid){
+  const j=jobs.find(x=>x.id===jid);
+  j.evStart=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.status='Evaluation';
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.thread.push({role:'mechanic',u:cu.name,txt:'Started vehicle evaluation.',ts});
+  saveJobDB(j);
+  openDet(jid);
+  toast('✓ Evaluation started');
+}
+
+function decL(jid,lid,dec){
+  const j=jobs.find(x=>x.id===jid);
+  j.ro.lines.find(x=>x.id===lid).dec=dec;
+  saveJobDB(j);openDet(jid);
+  toast(dec==='accepted'?'✓ Approved':'✕ Declined');
+}
+
+function sendDec(jid){
+  const j=jobs.find(x=>x.id===jid);
+  const note=document.getElementById('wNote')?.value.trim()||'';
+  j.ro.wrNote=note;j.ro.sent=true;
+  const acc=j.ro.lines.filter(l=>l.dec==='accepted').length;
+  const dec=j.ro.lines.filter(l=>l.dec==='declined').length;
+  j.status=acc>0?'In Progress':'Declined';
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.thread.push({role:'writer',u:cu.name,txt:`Decisions sent: ${acc} approved, ${dec} declined.${note?' Note: '+note:''}`,ts});
+  saveJobDB(j);CM('mDet');
+  toast(`✅ Decisions sent — ${acc} approved, ${dec} declined`);
+}
+
+function markDone(jid){
+  const j=jobs.find(x=>x.id===jid);
+  j.status='Complete';
+  j.evEnd=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  if(!j.invoice)j.invoice=null;
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.thread.push({role:'mechanic',u:cu.name,txt:'Job marked complete.',ts});
+  saveJobDB(j);CM('mDet');
+  toast('✅ Job complete! Service writer can now generate the invoice.');
+}
+
+function addNote(jid){
+  const i=document.getElementById('nInp');const t=i.value.trim();if(!t)return;
+  const j=jobs.find(x=>x.id===jid);
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.thread.push({role:cu.role,u:cu.name,txt:t,ts});
+  i.value='';
+  const th=document.getElementById('nThr');
+  const d=document.createElement('div');
+  d.className='note '+(cu.role==='mechanic'?'mechanic':'writer');
+  d.innerHTML=`<div class="nmeta">${cu.role==='mechanic'?'🔧 '+cu.name:'📋 '+cu.name} · ${ts}</div><div class="ntext">${t}</div>`;
+  th.appendChild(d);th.scrollTop=th.scrollHeight;
+  saveJobDB(j);
+}
+
+function updSt(jid){
+  const j=jobs.find(x=>x.id===jid);
+  j.status=document.getElementById('dSt').value;
+  saveJobDB(j);CM('mDet');
+  toast(`${jid} → ${j.status}`);
+}
+
+// ── APPROVALS ────────────────────────
+function renderApprovals(){
+  const rv=jobs.filter(j=>j.status==='Review Required'&&j.ro);
+  const el=document.getElementById('approvalsList');
+  if(!rv.length){el.innerHTML='<div class="empty">✅ No estimates waiting — all caught up!</div>';return;}
+  el.innerHTML=rv.map(j=>{
+    const lines=j.ro.lines;
+    const th=lines.reduce((s,l)=>s+l.hrs,0);
+    const tl=lines.reduce((s,l)=>s+l.hrs*l.rate,0);
+    const tp=lines.reduce((s,l)=>s+(l.parts||0),0);
+    const pend=lines.filter(l=>l.dec==='pending').length;
+    const isW=cu.role==='writer';
+    return`<div class="wc wc-o">
+      <div class="wch">
+        <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;">${j.id} — ${j.cu}</div>
+        <div style="font-size:12px;color:var(--tx2);">${j.yr||''} ${j.mk||''} ${j.mo||''} ${j.pl?'· '+j.pl:''} · ${j.mech} · Submitted ${j.ro.subAt}</div></div>
+        <span class="st s-rv" style="margin-left:auto;">⏳ Needs Review</span>
+      </div>
+      <div class="wcb">
+        <div style="background:#fff5f5;border-left:4px solid var(--red);padding:9px 12px;border-radius:4px;font-size:13px;line-height:1.5;margin-bottom:12px;"><strong>Complaint: </strong>${j.co}</div>
+        <div style="background:#f8f8f8;border:1px solid var(--bdr);border-radius:5px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5;"><strong>${j.mech}'s Findings: </strong>${j.ro.diag}</div>
+        <div class="slbl">Decide Each Repair:</div>
+        ${lines.map(l=>{
+          const lt=l.hrs*l.rate+(l.parts||0);
+          return`<div class="lc ${l.dec==='accepted'?'lc-acc':l.dec==='declined'?'lc-dec':'lc-pend'}" style="margin-bottom:8px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+              <div style="flex:1;">
+                <div style="font-weight:800;font-size:14px;margin-bottom:3px;">${l.desc}</div>
+                <div style="display:flex;gap:12px;font-size:12px;color:var(--tx2);flex-wrap:wrap;">
+                  <span>⏱ <strong style="color:var(--blu);">${l.hrs} hrs</strong></span>
+                  <span>Labor: <strong>$${(l.hrs*l.rate).toFixed(2)}</strong></span>
+                  ${l.parts?`<span>Parts: <strong>$${l.parts.toFixed(2)}</strong></span>`:''}
+                  <span style="font-weight:900;color:var(--tx);">$${lt.toFixed(2)}</span>
+                </div>
+              </div>
+              ${l.dec==='accepted'?'<span class="dacc">✓ Approved</span>':l.dec==='declined'?'<span class="ddec">✕ Declined</span>':''}
+            </div>
+            ${l.dec==='pending'&&isW?`<div style="display:flex;gap:7px;margin-top:8px;">
+              <button class="btn bsuc" onclick="apL('${j.id}','${l.id}')">✓ Approve This Repair</button>
+              <button class="btn bdng" onclick="deL('${j.id}','${l.id}')">✕ Decline This Repair</button>
+            </div>`:''}
+          </div>`;
+        }).join('')}
+        <div style="display:flex;justify-content:flex-end;gap:14px;align-items:baseline;padding:10px 0;border-top:2px solid var(--bdr);margin-top:6px;">
+          <span class="mono">LABOR</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--blu);">${th.toFixed(1)} hrs</span>
+          <span class="mono">PARTS</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--gld);">$${tp.toFixed(2)}</span>
+          <span class="mono">TOTAL</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:var(--red);">$${(tl+tp).toFixed(2)}</span>
+        </div>
+        ${isW?`<div class="fg" style="margin-top:4px;"><label>Note to Mechanic (optional)</label><textarea id="apN_${j.id}" style="min-height:48px;" placeholder="Instructions for ${j.mech}…"></textarea></div>
+          <button class="btn bp fw" onclick="apAll('${j.id}')" ${pend>0?'disabled style="opacity:.5;cursor:not-allowed;"':''}>
+            ${pend>0?`⚠ ${pend} repair(s) still need a decision`:`📤 Send All Decisions to ${j.mech}`}
+          </button>`:''}
+      </div></div>`;
+  }).join('');
+}
+
+function apL(jid,lid){
+  const j=jobs.find(x=>x.id===jid);
+  j.ro.lines.find(x=>x.id===lid).dec='accepted';
+  saveJobDB(j);renderApprovals();updBadges();toast('✓ Approved');
+}
+function deL(jid,lid){
+  const j=jobs.find(x=>x.id===jid);
+  j.ro.lines.find(x=>x.id===lid).dec='declined';
+  saveJobDB(j);renderApprovals();updBadges();toast('✕ Declined');
+}
+function apAll(jid){
+  const j=jobs.find(x=>x.id===jid);
+  const note=document.getElementById('apN_'+jid)?.value.trim()||'';
+  j.ro.wrNote=note;j.ro.sent=true;
+  const acc=j.ro.lines.filter(l=>l.dec==='accepted').length;
+  const dec=j.ro.lines.filter(l=>l.dec==='declined').length;
+  j.status=acc>0?'In Progress':'Declined';
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.thread.push({role:'writer',u:cu.name,txt:`Decisions sent to ${j.mech}: ${acc} approved, ${dec} declined.${note?' Note: '+note:''}`,ts});
+  saveJobDB(j);toast(`✅ Sent to ${j.mech}`);
+}
+
+// ── RO MODAL ────────────────────────
+function openRO(jid){
+  const j=jobs.find(x=>x.id===jid);
+  document.getElementById('roJId').value=jid;
+  document.getElementById('roSub').textContent=`${jid} — ${j.cu} — ${j.yr||''} ${j.mk||''} ${j.mo||''}`;
+  document.getElementById('roDiag').value='';
+  roLines=[];renderCG();renderROL();updROT();OM('mRO');
+}
+function renderCG(){document.getElementById('roCG').innerHTML=codes.map(c=>`<div class="cdbtn" id="cb_${c.id}" onclick="togCode('${c.id}')"><div class="cdn">${c.desc}</div><div class="cdh">${c.hrs} hrs · $${(c.hrs*c.rate).toFixed(0)}</div><div class="cdc">${c.name}</div></div>`).join('');}
+function togCode(scId){const c=codes.find(x=>x.id===scId);if(!c)return;const ei=roLines.findIndex(l=>l._id===scId);if(ei>=0){roLines.splice(ei,1);document.getElementById('cb_'+scId)?.classList.remove('sel');}else{roLines.push({id:'l'+(Date.now()),_id:scId,desc:c.desc,code:c.name,hrs:c.hrs,rate:c.rate,parts:0,dec:'pending'});document.getElementById('cb_'+scId)?.classList.add('sel');}renderROL();updROT();}
+function addROLine(){roLines.push({id:'l'+(Date.now()),desc:'',code:'',hrs:1.0,rate:115,parts:0,dec:'pending'});renderROL();updROT();}
+function renderROL(){document.getElementById('roLines').innerHTML=roLines.map((l,i)=>`<div class="roe"><input type="text" value="${l.desc}" placeholder="Repair description…" onchange="roLines[${i}].desc=this.value"><input type="number" value="${l.hrs}" step="0.25" min="0.25" title="Hours" onchange="roLines[${i}].hrs=parseFloat(this.value)||0;updROT()" style="color:var(--blu);"><input type="number" value="${l.parts||0}" step="1" min="0" placeholder="Parts $" onchange="roLines[${i}].parts=parseFloat(this.value)||0;updROT()"><button class="btn bg btn-xs" onclick="roLines.splice(${i},1);renderROL();updROT()">✕</button></div>`).join('')||'<div style="color:var(--tx3);font-size:13px;padding:7px 0;">Select codes above or add a custom line.</div>';}
+function updROT(){const th=roLines.reduce((s,l)=>s+l.hrs,0);const tl=roLines.reduce((s,l)=>s+l.hrs*(l.rate||115),0);const tp=roLines.reduce((s,l)=>s+(l.parts||0),0);document.getElementById('roTH').textContent=th.toFixed(1);document.getElementById('roTP').textContent='$'+tp.toFixed(2);document.getElementById('roTL').textContent='$'+tl.toFixed(2);document.getElementById('roGrand').textContent='$'+(tl+tp).toFixed(2);}
+function submitRO(){
+  const jid=document.getElementById('roJId').value;
+  const diag=document.getElementById('roDiag').value.trim();
+  if(!diag){toast('Describe what you found','err');return;}
+  if(!roLines.length){toast('Add at least one repair line','err');return;}
+  const j=jobs.find(x=>x.id===jid);
+  j.evEnd=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.ro={diag,lines:roLines.map(l=>({...l})),subAt:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),wrNote:'',sent:false};
+  j.status='Review Required';
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  j.thread.push({role:'mechanic',u:cu.name,txt:`Estimate submitted: ${roLines.length} repair(s) — ${document.getElementById('roTH').textContent} hrs — ${document.getElementById('roGrand').textContent} total.`,ts});
+  saveJobDB(j);
+  CM('mRO');
+  toast('📤 Estimate sent to service writer!');
+}
+
+// ── MECH DASH ────────────────────────
+function renderMechDash(){
+  const mn=cu.role==='mechanic'?cu.name:'Bob';
+  document.getElementById('mDashT').textContent=mn+"'s Jobs";
+  const my=jobs.filter(j=>j.mech===mn&&j.status!=='Complete');
+  const el=document.getElementById('mechJobsList');
+  if(!my.length){el.innerHTML='<div class="empty">✓ No active jobs assigned to you.</div>';return;}
+  const stM={New:'s-new',Evaluation:'s-ev','Review Required':'s-rv','In Progress':'s-ip'};
+  el.innerHTML=my.map(j=>{
+    const decSent=j.ro?.sent;
+    return`<div class="mjc" style="${j.status==='Review Required'||!j.evStart?'border-color:var(--red);':''}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+        <div>
+          <div class="mjt">${j.id} — ${j.cu}</div>
+          <div class="mjm">${j.yr||''} ${j.mk||''} ${j.mo||''} ${j.pl?'· '+j.pl:''} ${j.mi?'· '+j.mi.toLocaleString()+' mi':''}</div>
+          <span class="st ${stM[j.status]||''}">${j.status}</span>
+          ${j.pr==='Urgent'?'<span class="tag" style="background:#fde8e8;color:var(--red);margin-left:6px;">⚡ URGENT</span>':''}
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--tx2);">${j.dt} ${j.ti?'@ '+j.ti:''}<br>From: ${j.createdBy}</div>
+      </div>
+      <div class="msec"><div class="mst">Customer Complaint</div><div style="font-size:14px;line-height:1.5;">${j.co}</div></div>
+      ${decSent?`<div class="msec" style="background:#e8f0fe;border-color:var(--blu);">
+        <div class="mst" style="color:var(--blu);">📋 Writer Decisions Received</div>
+        <div style="font-size:13px;margin-bottom:3px;"><strong style="color:var(--grn);">✓ Approved:</strong> ${j.ro.lines.filter(l=>l.dec==='accepted').map(l=>l.desc).join(', ')||'None'}</div>
+        <div style="font-size:13px;"><strong style="color:var(--red);">✕ Declined:</strong> ${j.ro.lines.filter(l=>l.dec==='declined').map(l=>l.desc).join(', ')||'None'}</div>
+        ${j.ro.wrNote?`<div style="margin-top:6px;font-size:12px;color:var(--tx2);">Note: <em>${j.ro.wrNote}</em></div>`:''}
+      </div>`:''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;margin-top:12px;">
+        ${!j.evStart?`<button class="mbtn mb-go" onclick="startEv('${j.id}')"><div class="mbtn-icon">🔍</div>Start Evaluation</button>`:''}
+        ${j.evStart&&!j.ro?`<button class="mbtn mb-sub" onclick="openRO('${j.id}')"><div class="mbtn-icon">📋</div>Submit Estimate</button>`:''}
+        ${decSent&&j.status!=='Complete'?`<button class="mbtn mb-dn" onclick="markDone('${j.id}')"><div class="mbtn-icon">✅</div>Job Complete</button>`:''}
+        <button class="mbtn mb-view" onclick="openDet('${j.id}')"><div class="mbtn-icon">📂</div>View Details</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── HOUR TRACKING (estimate-based) ───
+// Returns all labor line items from approved/submitted ROs for a given mechanic
+function getEstimateHourRows(mechName){
+  const rows=[];
+  jobs.forEach(j=>{
+    if(j.mech!==mechName||!j.ro||!j.ro.lines) return;
+    const submitted=j.ro.sent||j.ro.status==='decisions_sent';
+    if(!submitted) return;
+    j.ro.lines.forEach(l=>{
+      if(l.dec==='declined') return; // skip declined lines
+      rows.push({
+        jid:j.id,
+        customer:j.cu,
+        vehicle:`${j.yr||''} ${j.mk||''} ${j.mo||''}`.trim(),
+        desc:l.desc,
+        code:l.code||'',
+        cat:getCatForCode(l.code),
+        hrs:l.hrs,
+        rate:users.find(u=>u.name===mechName)?.rate||28,
+        dec:l.dec, // 'accepted' or 'pending'
+        apptDate:j.dt,
+        week:getWeekLabel(j.dt),
+        weekStart:getWeekStart(j.dt),
+        payStatus: isPaidWeek(mechName, getWeekStart(j.dt)) ? 'paid' : 'unpaid',
+      });
+    });
+  });
+  // sort newest first
+  return rows.sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
+}
+
+function getCatForCode(code){
+  if(!code) return 'General';
+  const c=codes.find(x=>x.name===code);
+  return c?c.cat:'General';
+}
+
+function getWeekStart(dateStr){
+  if(!dateStr) return todStr;
+  const d=new Date(dateStr);
+  const day=d.getDay(); // 0=Sun
+  const diff=day===0?-6:1-day; // Monday-based
+  const mon=new Date(d);mon.setDate(d.getDate()+diff);
+  return d2s(mon);
+}
+
+function getWeekLabel(dateStr){
+  const ws=getWeekStart(dateStr);
+  const we=new Date(ws);we.setDate(we.getDate()+6);
+  const wsD=new Date(ws);
+  return wsD.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+we.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function isPaidWeek(mechName, weekStart){
+  return payPeriods.some(pp=>pp.mech===mechName&&pp.weekStart===weekStart&&pp.status==='paid');
+}
+
+function renderMechHours(){
+  const mn=cu.role==='mechanic'?cu.name:users.find(u=>u.role==='mechanic')?.name||'Bob';
+  const allRows=getEstimateHourRows(mn);
+  const mechRate=users.find(u=>u.name===mn)?.rate||28;
+
+  // Populate week filter
+  const weeks=[...new Set(allRows.map(r=>r.week))];
+  const wkSel=document.getElementById('hrWkFilter');
+  const prevWk=wkSel?.value;
+  if(wkSel){wkSel.innerHTML='<option value="">All Weeks</option>'+weeks.map(w=>`<option value="${w}" ${w===prevWk?'selected':''}>${w}</option>`).join('');}
+
+  // Populate category filter
+  const cats=[...new Set(allRows.map(r=>r.cat))].sort();
+  const catSel=document.getElementById('hrCatFilter');
+  const prevCat=catSel?.value;
+  if(catSel){catSel.innerHTML='<option value="">All Job Types</option>'+cats.map(c=>`<option value="${c}" ${c===prevCat?'selected':''}>${c}</option>`).join('');}
+
+  // Populate submit week select
+  const submitSel=document.getElementById('hrSubmitWk');
+  const weekStarts=[...new Set(allRows.filter(r=>r.payStatus==='unpaid').map(r=>r.weekStart))].sort().reverse();
+  if(submitSel){submitSel.innerHTML=weekStarts.length?weekStarts.map(ws=>`<option value="${ws}">${getWeekLabel(ws)}</option>`).join(''):'<option value="">No unpaid weeks</option>';}
+  updSubmitPreview(mn);
+
+  // Apply filters
+  const wkF=document.getElementById('hrWkFilter')?.value||'';
+  const catF=document.getElementById('hrCatFilter')?.value||'';
+  const stF=document.getElementById('hrStatusFilter')?.value||'';
+  let filtered=allRows;
+  if(wkF) filtered=filtered.filter(r=>r.week===wkF);
+  if(catF) filtered=filtered.filter(r=>r.cat===catF);
+  if(stF) filtered=filtered.filter(r=>r.payStatus===stF);
+
+  // Totals
+  const filtTotal=filtered.reduce((s,r)=>s+r.hrs,0);
+  const filtPay=filtTotal*mechRate;
+  document.getElementById('hrFilteredTotal').textContent=filtTotal.toFixed(1)+' hrs';
+  document.getElementById('hrFilteredPay').textContent='$'+filtPay.toFixed(2);
+
+  // Summary cards — use ALL rows (no filter) for top-level summary
+  const totalHrs=allRows.reduce((s,r)=>s+r.hrs,0);
+  const unpaidHrs=allRows.filter(r=>r.payStatus==='unpaid').reduce((s,r)=>s+r.hrs,0);
+  const paidHrs=allRows.filter(r=>r.payStatus==='paid').reduce((s,r)=>s+r.hrs,0);
+  const thisWkLabel=getWeekLabel(todStr);
+  const thisWkHrs=allRows.filter(r=>r.week===thisWkLabel).reduce((s,r)=>s+r.hrs,0);
+  document.getElementById('hrSummaryCards').innerHTML=`
+    <div class="hr-stat-card hsc-a"><div class="slbl">This Week</div><div class="hr-big" style="color:var(--red);">${thisWkHrs.toFixed(1)}</div><div style="font-size:11px;color:var(--tx3);margin-top:3px;">hours</div></div>
+    <div class="hr-stat-card hsc-b"><div class="slbl">Unpaid Hours</div><div class="hr-big" style="color:var(--grn);">${unpaidHrs.toFixed(1)}</div><div style="font-size:11px;color:var(--tx3);margin-top:3px;">$${(unpaidHrs*mechRate).toFixed(2)} owed</div></div>
+    <div class="hr-stat-card hsc-c"><div class="slbl">Paid Hours</div><div class="hr-big" style="color:var(--blu);">${paidHrs.toFixed(1)}</div><div style="font-size:11px;color:var(--tx3);margin-top:3px;">all time</div></div>
+    <div class="hr-stat-card hsc-d"><div class="slbl">Total All Time</div><div class="hr-big" style="color:var(--gld);">${totalHrs.toFixed(1)}</div><div style="font-size:11px;color:var(--tx3);margin-top:3px;">hours submitted</div></div>
+  `;
+
+  // Hours table
+  const tbody=document.getElementById('hrBody');
+  if(!filtered.length){
+    tbody.innerHTML='<tr><td colspan="9" class="empty">No hour entries match your filters.</td></tr>';
+  } else {
+    tbody.innerHTML=filtered.map(r=>`<tr>
+      <td class="mono" style="font-size:10px;white-space:nowrap;">${r.week.split('–')[0].trim()}</td>
+      <td class="mono" style="font-weight:700;">${r.jid}</td>
+      <td style="font-size:13px;">${r.customer}</td>
+      <td style="font-size:12px;color:var(--tx2);">${r.vehicle}</td>
+      <td style="font-size:12px;">${r.desc}${r.code?` <span class="mono" style="font-size:10px;">(${r.code})</span>`:''}</td>
+      <td><span style="font-size:10px;background:#f5f5f5;border:1px solid var(--bdr);padding:1px 6px;border-radius:3px;color:var(--tx2);">${r.cat}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--blu);font-weight:700;">${r.hrs.toFixed(2)}</td>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--grn);font-weight:700;">$${(r.hrs*r.rate).toFixed(2)}</td>
+      <td><span class="st ${r.payStatus==='paid'?'s-co':'s-new'}">${r.payStatus==='paid'?'✓ Paid':'Unpaid'}</span></td>
+    </tr>`).join('');
+  }
+
+  // Weekly breakdown
+  const byWeek={};
+  allRows.forEach(r=>{
+    if(!byWeek[r.weekStart])byWeek[r.weekStart]={label:r.week,hrs:0,pay:0,rows:[],status:r.payStatus};
+    byWeek[r.weekStart].hrs+=r.hrs;
+    byWeek[r.weekStart].pay+=r.hrs*r.rate;
+    byWeek[r.weekStart].rows.push(r);
+  });
+  const weekKeys=Object.keys(byWeek).sort().reverse();
+  document.getElementById('hrWeeklyBreakdown').innerHTML=weekKeys.length?weekKeys.map(ws=>{
+    const w=byWeek[ws];
+    const isPd=isPaidWeek(mn,ws);
+    const byCat={};w.rows.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+r.hrs;});
+    return`<div class="hr-week-card">
+      <div class="hr-week-head">
+        <div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;">${w.label}</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${w.rows.length} line(s) · ${Object.entries(byCat).map(([c,h])=>`${c}: ${h.toFixed(1)}h`).join(' · ')}</div></div>
+        <div style="text-align:right;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--blu);">${w.hrs.toFixed(1)} hrs</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--grn);font-weight:700;">$${w.pay.toFixed(2)}</div>
+        </div>
+        <span class="st ${isPd?'s-co':'s-new'}" style="align-self:center;">${isPd?'✓ Paid':'Unpaid'}</span>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty">No hours submitted yet.</div>';
+}
+
+function updSubmitPreview(mn){
+  const sel=document.getElementById('hrSubmitWk');
+  const prev=document.getElementById('hrSubmitPreview');
+  if(!sel||!prev) return;
+  const ws=sel.value;
+  if(!ws){prev.innerHTML='';return;}
+  const mechRate=users.find(u=>u.name===mn)?.rate||28;
+  const rows=getEstimateHourRows(mn).filter(r=>r.weekStart===ws&&r.payStatus==='unpaid');
+  const totalHrs=rows.reduce((s,r)=>s+r.hrs,0);
+  const totalPay=totalHrs*mechRate;
+  prev.innerHTML=`<div style="background:#f8f8f8;border:1px solid var(--bdr);border-radius:5px;padding:12px;font-size:13px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--tx2);">Week:</span><strong>${getWeekLabel(ws)}</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--tx2);">Line items:</span><strong>${rows.length}</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--tx2);">Total Hours:</span><strong style="color:var(--blu);">${totalHrs.toFixed(2)} hrs</strong></div>
+    <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--bdr);"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Total Pay</span><strong style="font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--grn);">$${totalPay.toFixed(2)}</strong></div>
+  </div>`;
+}
+
+async function submitWeekForPay(){
+  const mn=cu.role==='mechanic'?cu.name:users.find(u=>u.role==='mechanic')?.name||'Bob';
+  const sel=document.getElementById('hrSubmitWk');
+  const ws=sel?.value;
+  if(!ws){toast('Select a week to submit','wrn');return;}
+  const mechRate=users.find(u=>u.name===mn)?.rate||28;
+  const rows=getEstimateHourRows(mn).filter(r=>r.weekStart===ws&&r.payStatus==='unpaid');
+  if(!rows.length){toast('No unpaid hours for that week','wrn');return;}
+  const totalHrs=rows.reduce((s,r)=>s+r.hrs,0);
+  const totalPay=totalHrs*mechRate;
+  if(!confirm(`Submit week ${getWeekLabel(ws)} for payment?\n\n${totalHrs.toFixed(2)} hours · $${totalPay.toFixed(2)}\n\nThis will mark these hours as submitted.`)) return;
+  const pp={
+    id:'pp'+Date.now(),mech:mn,weekStart:ws,
+    label:getWeekLabel(ws),
+    rows:[...rows],
+    totalHrs,totalPay,mechRate,
+    status:'submitted',
+    at:new Date().toLocaleString()
+  };
+  payPeriods.unshift(pp);
+  await savePayPeriodDB(pp);
+  renderMechHours();renderPayroll();
+  toast('✅ Week submitted for payment!');
+}
+
+function updMechSel(){} // no longer needed but keep stub
+
+// ── ALL JOBS ────────────────────────
+function renderJT(){
+  const f=document.getElementById('stFil')?.value||'';
+  const fil=f?jobs.filter(j=>j.status===f):jobs;
+  const sm={New:'s-new',Evaluation:'s-ev','Review Required':'s-rv','In Progress':'s-ip',Complete:'s-co'};
+  document.getElementById('jtBody').innerHTML=fil.map(j=>{
+    const rh=j.ro?j.ro.lines.reduce((s,l)=>s+l.hrs,0):null;
+    return`<tr onclick="openDet('${j.id}')" style="cursor:pointer;">
+      <td class="mono" style="font-weight:700;">${j.id}</td>
+      <td data-label="Customer"><strong>${j.cu}</strong>${j.ph?`<br><span style="font-size:10px;color:var(--tx3);">${j.ph}</span>`:''}</td>
+      <td data-label="Vehicle" style="font-size:12px;color:var(--tx2);">${j.yr||''} ${j.mk||''} ${j.mo||''}</td>
+      <td data-label="Complaint" style="font-size:12px;max-width:160px;">${j.co.substring(0,50)}${j.co.length>50?'…':''}</td>
+      <td data-label="Status"><span class="st ${sm[j.status]||''}">${j.status}</span></td>
+      <td data-label="Mechanic" style="font-size:12px;">${j.mech||'—'}</td>
+      <td data-label="Date" class="mono">${j.dt}</td>
+      <td data-label="Hours" style="font-family:'JetBrains Mono',monospace;color:var(--blu);">${rh!=null?rh.toFixed(1)+' hrs':'—'}</td>
+      <td><button class="btn bg btn-xs" onclick="event.stopPropagation();openDet('${j.id}')">View</button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="9" class="empty">No jobs found</td></tr>';
+}
+
+// ── SCHEDULE ────────────────────────
+function renderSchedule(){
+  const base=new Date(today);base.setDate(base.getDate()+wkOff*7);
+  const mon=new Date(base);mon.setDate(base.getDate()-((base.getDay()+6)%7));
+  const days=Array.from({length:5},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
+  document.getElementById('wkLbl').textContent=days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+days[4].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const hrs=[8,9,10,11,12,13,14,15,16,17];const tl=['8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM'];
+  const g=document.getElementById('schedGrid');g.style.gridTemplateColumns='60px repeat(5,1fr)';
+  let h='<div style="background:#f8f8f8;padding:8px;border-bottom:1px solid var(--bdr);border-right:1px solid var(--bdr);"></div>';
+  days.forEach(d=>{const it=d2s(d)===todStr;h+=`<div style="background:#f8f8f8;padding:8px 10px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid ${it?'var(--red)':'var(--bdr)'};border-right:1px solid var(--bdr);color:${it?'var(--red)':'var(--tx2)'};">${d.toLocaleDateString('en-US',{weekday:'short'})} ${d.getDate()}</div>`;});
+  hrs.forEach((hr,ti)=>{
+    h+=`<div style="background:#f8f8f8;border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);padding:4px 5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);text-align:right;">${tl[ti]}</div>`;
+    days.forEach(d=>{
+      const ds=d2s(d);const ap=jobs.filter(j=>j.dt===ds&&j.ti&&parseInt(j.ti)===hr);
+      h+=`<div style="border-right:1px solid var(--bdr);border-bottom:1px solid var(--bdr);min-height:46px;padding:2px;">`+
+        ap.map((j,i)=>`<div style="background:${i%2===0?'#fde8e8':'#e8f0fe'};border-left:3px solid ${i%2===0?'var(--red)':'var(--blu)'};border-radius:3px;padding:2px 6px;margin-bottom:1px;cursor:pointer;font-size:10px;" onclick="openDet('${j.id}')"><div style="font-weight:700;">${j.cu.split(' ').pop()}</div><div style="color:var(--tx2);">${j.co.substring(0,25)}</div></div>`).join('')+'</div>';
+    });
+  });
+  g.innerHTML=h;
+}
+function prevW(){wkOff--;renderSchedule();}function nextW(){wkOff++;renderSchedule();}
+
+// ── SERVICE CODES ────────────────────
+function renderCodes(){document.getElementById('codesBody').innerHTML=codes.map(c=>`<tr><td><strong style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);">${c.name}</strong></td><td>${c.desc}</td><td><span style="font-family:'JetBrains Mono',monospace;color:var(--blu);">${c.hrs} hrs</span></td><td class="mono">$${c.rate}/hr</td><td style="font-family:'JetBrains Mono',monospace;color:var(--red);font-weight:700;">$${(c.hrs*c.rate).toFixed(2)}</td><td><span style="font-size:10px;background:#f5f5f5;border:1px solid var(--bdr);padding:1px 6px;border-radius:3px;color:var(--tx2);">${c.cat}</span></td><td><button class="btn bg btn-xs" onclick="openEditCode('${c.id}')">Edit</button> <button class="btn btn-xs bdng" onclick="delCode('${c.id}')">✕</button></td></tr>`).join('');}
+function openCodeModal(){document.getElementById('mCodeT').textContent='Add Service Code';['scId','scNm','scDs','scHr','scRt'].forEach(id=>document.getElementById(id).value='');document.getElementById('scCat').value='General';OM('mCode');}
+function openEditCode(cid){const c=codes.find(x=>x.id===cid);document.getElementById('mCodeT').textContent='Edit Code';document.getElementById('scId').value=c.id;document.getElementById('scNm').value=c.name;document.getElementById('scDs').value=c.desc;document.getElementById('scHr').value=c.hrs;document.getElementById('scRt').value=c.rate;document.getElementById('scCat').value=c.cat;OM('mCode');}
+function saveCode(){const n=document.getElementById('scNm').value.trim();const d=document.getElementById('scDs').value.trim();const h=parseFloat(document.getElementById('scHr').value)||0;const r=parseFloat(document.getElementById('scRt').value)||115;const cat=document.getElementById('scCat').value;if(!n||!d||!h){toast('Fill all fields','err');return;}const eid=document.getElementById('scId').value;if(eid){Object.assign(codes.find(x=>x.id===eid),{name:n,desc:d,hrs:h,rate:r,cat});toast('Updated');}else{codes.push({id:'sc'+scCtr++,name:n,desc:d,hrs:h,rate:r,cat});toast('Added: '+n);}CM('mCode');renderCodes();}
+function delCode(cid){if(!confirm('Delete this code?'))return;codes=codes.filter(x=>x.id!==cid);renderCodes();toast('Deleted');}
+
+// ── PAYROLL ─────────────────────────
+function renderPayroll(){
+  const rb=document.getElementById('rateBox');
+  if(rb)rb.innerHTML=users.filter(u=>u.role==='mechanic').map(u=>`<div class="prow"><span class="plbl">${u.name}</span><span class="pval">$<input type="number" value="${u.rate||28}" style="width:50px;background:transparent;border:none;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:13px;" oninput="users.find(x=>x.id==='${u.id}').rate=parseFloat(this.value)||28;renderPayroll()"></span></div>`).join('');
+  const el=document.getElementById('payList');
+  if(!payPeriods.length){el.innerHTML='<div class="empty">💵 No submitted pay periods yet.<br><span style="font-size:12px;">Mechanic submits via My Hours → Submit Week for Payment.</span></div>';return;}
+  el.innerHTML=payPeriods.map(pp=>{
+    // recalculate pay using current rate in case it was changed
+    const curRate=users.find(u=>u.name===pp.mech)?.rate||pp.mechRate||28;
+    const totalPay=pp.totalHrs*curRate;
+    const byCat={};pp.rows.forEach(r=>{byCat[r.cat]=(byCat[r.cat]||0)+r.hrs;});
+    return`<div class="wc wc-g"><div class="wch">
+      <div style="flex:1;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;">${pp.mech} — ${pp.label}</div>
+        <div style="font-size:11px;color:var(--tx2);">Submitted: ${pp.at} · ${pp.rows.length} line items · ${pp.totalHrs.toFixed(2)} hrs</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px;">${Object.entries(byCat).map(([c,h])=>`${c}: ${h.toFixed(1)}h`).join(' · ')}</div>
+      </div>
+      <span class="st ${pp.status==='paid'?'s-co':'s-rv'}" style="align-self:flex-start;">${pp.status==='paid'?'✓ Paid':'Submitted'}</span>
+    </div>
+    <div class="wcb">
+      <table class="rolt" style="margin-bottom:10px;">
+        <thead><tr><th>Job</th><th>Customer</th><th>Repair</th><th>Category</th><th>Hrs</th><th>Pay</th></tr></thead>
+        <tbody>${pp.rows.map(r=>`<tr>
+          <td class="mono" style="font-size:10px;">${r.jid}</td>
+          <td style="font-size:12px;">${r.customer}</td>
+          <td style="font-size:12px;">${r.desc}</td>
+          <td><span style="font-size:10px;background:#f5f5f5;border:1px solid var(--bdr);padding:1px 5px;border-radius:3px;color:var(--tx2);">${r.cat}</span></td>
+          <td style="font-family:'JetBrains Mono',monospace;color:var(--blu);font-weight:700;">${r.hrs.toFixed(2)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:var(--grn);font-weight:700;">$${(r.hrs*curRate).toFixed(2)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="psum">
+        <div class="prow"><span class="plbl">Total Hours</span><span class="pval" style="color:var(--blu);">${pp.totalHrs.toFixed(2)} hrs</span></div>
+        <div class="prow"><span class="plbl">Rate</span><span class="pval">$${curRate}/hr</span></div>
+        <div class="prow ptot"><span class="plbl">Total Pay</span><span class="pval">$${totalPay.toFixed(2)}</span></div>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:10px;">
+        ${pp.status!=='paid'?`<button class="btn bsuc btn-sm" onclick="markPaid('${pp.id}')">✓ Mark Paid</button>`:''}
+        <button class="btn bg btn-sm" onclick="dlPay('${pp.id}')">⬇ Download Report</button>
+      </div>
+    </div></div>`;
+  }).join('');
+}
+async function markPaid(ppId){
+  const pp=payPeriods.find(x=>x.id===ppId);
+  pp.status='paid';
+  await savePayPeriodDB(pp);
+  toast('✓ Marked as paid');
+}
+function dlPay(ppId){
+  const pp=payPeriods.find(x=>x.id===ppId);
+  const curRate=users.find(u=>u.name===pp.mech)?.rate||pp.mechRate||28;
+  const rows=pp.rows.map(r=>`${r.jid}\t${r.customer}\t${r.vehicle}\t${r.desc}\t${r.cat}\t${r.hrs.toFixed(2)}\t$${(r.hrs*curRate).toFixed(2)}`).join('\n');
+  const txt=`ADVANCED AUTO KEY — PAY PERIOD REPORT\nMechanic: ${pp.mech}\nWeek: ${pp.label}\nRate: $${curRate}/hr\nSubmitted: ${pp.at}\nTotal Hours: ${pp.totalHrs.toFixed(2)}\nTotal Pay: $${(pp.totalHrs*curRate).toFixed(2)}\n\nJOB\tCUSTOMER\tVEHICLE\tREPAIR\tCATEGORY\tHRS\tPAY\n${rows}`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`pay_${pp.mech.replace(' ','_')}_${pp.weekStart}.txt`;a.click();toast('Downloaded');
+}
+
+// ── SETTINGS ────────────────────────
+function renderSettings(){
+  const wr=users.filter(u=>u.role==='writer');const me=users.filter(u=>u.role==='mechanic');
+  document.getElementById('settingsBody').innerHTML=`
+    <div class="sset"><div class="sstit">Service Writers</div>
+      ${wr.map(u=>`<div class="urow"><div class="uav uaw">${u.name[0]}</div><div style="flex:1;"><div style="font-weight:700;">${u.name}</div><div style="font-size:11px;color:var(--tx3);">Service Writer</div></div>${u.id!=='u1'&&u.id!=='u2'?`<button class="btn btn-xs bdng" onclick="removeUser('${u.id}')">Remove</button>`:''}</div>`).join('')}
+      <button class="btn bp btn-sm" style="margin-top:10px;" onclick="openAddUser('writer')">＋ Add Service Writer</button>
+    </div>
+    <div class="sset"><div class="sstit">Mechanics</div>
+      ${me.map(u=>`<div class="urow"><div class="uav uam">${u.name[0]}</div><div style="flex:1;"><div style="font-weight:700;">${u.name}</div><div style="font-size:11px;color:var(--tx3);">Mechanic · $${u.rate||25}/hr</div></div>${u.id!=='u3'?`<button class="btn btn-xs bdng" onclick="removeUser('${u.id}')">Remove</button>`:''}</div>`).join('')}
+      <button class="btn bk btn-sm" style="margin-top:10px;" onclick="openAddUser('mechanic')">＋ Add Mechanic</button>
+    </div>
+    <div class="sset"><div class="sstit">Hourly Rates</div>
+      ${me.map(u=>`<div class="prow"><span class="plbl" style="font-size:14px;font-weight:600;">${u.name}</span><span class="pval">$<input type="number" value="${u.rate||25}" style="width:65px;background:#f5f5f5;border:1.5px solid var(--bdr);border-radius:4px;padding:4px 7px;font-family:'JetBrains Mono',monospace;font-size:14px;" oninput="users.find(x=>x.id==='${u.id}').rate=parseFloat(this.value)||25;">/hr</span></div>`).join('')}
+    </div>`;
+}
+function openAddUser(role){document.getElementById('auNm').value='';document.getElementById('auRl').value=role;document.getElementById('auRt').value='';OM('mAU');}
+function saveUser(){const n=document.getElementById('auNm').value.trim();const r=document.getElementById('auRl').value;const rt=parseFloat(document.getElementById('auRt').value)||25;if(!n){toast('Name required','err');return;}users.push({id:'u'+uCtr++,name:n,role:r,rate:rt});CM('mAU');renderSettings();ra();toast(`${n} added`);}
+function removeUser(uid){if(!confirm('Remove this team member?'))return;users=users.filter(x=>x.id!==uid);renderSettings();ra();toast('Removed');}
+
+// ── EDIT JOB ─────────────────────────
+let editingJobId=null;
+function openEdit(jid){
+  const j=jobs.find(x=>x.id===jid);CM('mDet');
+  editingJobId=jid;
+  document.getElementById('nj-cu').value=j.cu;document.getElementById('nj-ph').value=j.ph||'';
+  document.getElementById('nj-em').value=j.em||'';document.getElementById('nj-yr').value=j.yr||'';
+  document.getElementById('nj-mk').value=j.mk||'';document.getElementById('nj-mo').value=j.mo||'';
+  document.getElementById('nj-pl').value=j.pl||'';document.getElementById('nj-mi').value=j.mi||'';
+  document.getElementById('nj-co').value=j.co;document.getElementById('nj-in').value=j.iNote||'';
+  document.getElementById('nj-dt').value=j.dt;document.getElementById('nj-ti').value=j.ti;
+  document.getElementById('nj-pr').value=j.pr;
+  const msel=document.getElementById('nj-me');
+  msel.innerHTML='<option value="">Select mechanic…</option>'+users.filter(x=>x.role==='mechanic').map(x=>`<option value="${x.name}">${x.name}</option>`).join('');
+  msel.value=j.mech;
+  // Update button label
+  const btn=document.querySelector('#panel-newjob .btn.bp');
+  if(btn) btn.textContent='💾 Save Changes';
+  const hdr=document.querySelector('#panel-newjob .pt');
+  if(hdr) hdr.textContent='Edit Work Order';
+  showPanel('newjob');
+}
+
+// ── DASHBOARD HELPERS ────────────────
+function renderAttn(){
+  const items=[];
+  jobs.forEach(j=>{
+    if(j.status==='Review Required')items.push({ic:'⏳',tx:`${j.id} — ${j.cu}: estimate waiting`,c:'var(--org)',jid:j.id});
+    if(j.status==='New')items.push({ic:'📤',tx:`${j.id} — ${j.cu}: waiting for ${j.mech}`,c:'var(--blu)',jid:j.id});
+    if(j.pr==='Urgent'&&j.status!=='Complete')items.push({ic:'⚡',tx:`${j.id} — URGENT: ${j.cu}`,c:'var(--red)',jid:j.id});
+  });
+  const el=document.getElementById('attnList');
+  if(!items.length){el.innerHTML='<div class="empty" style="padding:14px;">✓ All clear!</div>';return;}
+  el.innerHTML=items.map(i=>`<div class="jcard" style="border-left:4px solid ${i.c};cursor:pointer;" onclick="openDet('${i.jid}')"><div style="font-size:13px;">${i.ic} ${i.tx}</div></div>`).join('');
+}
+function renderToday(){
+  const tj=jobs.filter(j=>j.dt===todStr).sort((a,b)=>a.ti.localeCompare(b.ti));
+  const el=document.getElementById('todayList');
+  const sm={New:'s-new',Evaluation:'s-ev','Review Required':'s-rv','In Progress':'s-ip',Complete:'s-co'};
+  if(!tj.length){el.innerHTML='<div class="empty" style="padding:14px;">📅 No appointments today</div>';return;}
+  el.innerHTML=tj.map(j=>`<div class="jcard" onclick="openDet('${j.id}')"><div style="display:flex;align-items:center;gap:9px;"><div class="mono" style="min-width:44px;">${j.ti}</div><div><div style="font-weight:700;">${j.cu}</div><div style="font-size:11px;color:var(--tx2);">${j.co.substring(0,38)}</div></div><span class="st ${sm[j.status]||''}" style="margin-left:auto;">${j.status}</span></div></div>`).join('');
+}
+
+function updBadges(){
+  const act=jobs.filter(j=>['New','Evaluation','In Progress'].includes(j.status)).length;
+  const rv=jobs.filter(j=>j.status==='Review Required').length;
+  const readyInv=jobs.filter(j=>j.status==='Complete'&&j.ro&&!j.invoice).length;
+  document.getElementById('badgeB').textContent=act;
+  document.getElementById('badgeA').textContent=rv;
+  const invBadge=document.getElementById('badgeInv');
+  if(invBadge){invBadge.textContent=readyInv;invBadge.style.display=readyInv>0?'':'none';}
+  const pil=document.getElementById('notif');
+  if(rv>0){pil.classList.remove('hidden');document.getElementById('notifN').textContent=rv;}else pil.classList.add('hidden');
+  updMobDots();
+}
+
+// ── INVOICES ─────────────────────────
+let invLineData=[]; // temp editable lines for modal
+let invCtr=1000;
+
+function renderInvoices(){
+  const ready=jobs.filter(j=>j.status==='Complete'&&j.ro&&!j.invoice);
+  const sent=jobs.filter(j=>j.invoice);
+  const readyEl=document.getElementById('invReadyList');
+  const sentEl=document.getElementById('invSentList');
+  if(!readyEl||!sentEl)return;
+
+  if(!ready.length){
+    readyEl.innerHTML='<div class="empty" style="padding:16px;font-size:13px;">✓ No completed jobs waiting for an invoice.</div>';
+  } else {
+    readyEl.innerHTML=ready.map(j=>{
+      const lines=j.ro.lines.filter(l=>l.dec==='accepted');
+      const labor=lines.reduce((s,l)=>s+l.hrs*l.rate,0);
+      const parts=lines.reduce((s,l)=>s+(l.parts||0),0);
+      return`<div class="wc wc-g">
+        <div class="wch">
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;">${j.id} — ${j.cu}</div>
+          <div style="font-size:12px;color:var(--tx2);">${j.yr||''} ${j.mk||''} ${j.mo||''} ${j.pl?'· '+j.pl:''} · Completed ${j.evEnd||j.dt}</div></div>
+          <div style="text-align:right;margin-left:auto;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--red);">Est. Total: $${(labor+parts).toFixed(2)}</div>
+            <div style="font-size:11px;color:var(--tx3);">${lines.length} approved line(s)</div>
+          </div>
+        </div>
+        <div class="wcb" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="flex:1;font-size:13px;color:var(--tx2);">${j.co.substring(0,80)}${j.co.length>80?'…':''}</div>
+          <button class="btn bp" onclick="openInvoiceModal('${j.id}')">🧾 Create & Review Invoice</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  if(!sent.length){
+    sentEl.innerHTML='<div class="empty" style="padding:16px;font-size:13px;">No invoices sent yet.</div>';
+  } else {
+    sentEl.innerHTML=sent.map(j=>{
+      const inv=j.invoice;
+      const total=inv.lines.reduce((s,l)=>s+(l.qty*l.unitPrice),0)*(1+(inv.taxRate||0)/100);
+      return`<div class="wc" style="border-top:4px solid var(--blu);">
+        <div class="wch">
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:900;">#${inv.num} — ${j.cu}</div>
+          <div style="font-size:12px;color:var(--tx2);">${j.yr||''} ${j.mk||''} ${j.mo||''} · Sent ${inv.sentAt}</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px;">To: ${inv.sentTo.join(' · ')}</div></div>
+          <div style="text-align:right;margin-left:auto;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--red);">$${total.toFixed(2)}</div>
+            <span class="st ${inv.paid?'s-co':'s-new'}">${inv.paid?'✓ Paid':'Outstanding'}</span>
+          </div>
+        </div>
+        <div class="wcb" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn bg btn-sm" onclick="openInvoiceModal('${j.id}')">👁 View Invoice</button>
+          <button class="btn bg btn-sm" onclick="printInvoice('${j.id}')">🖨 Print</button>
+          ${!inv.paid?`<button class="btn bsuc btn-sm" onclick="markInvPaid('${j.id}')">✓ Mark Paid</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function openInvoiceModal(jid){
+  const j=jobs.find(x=>x.id===jid);
+  if(!j) return;
+  document.getElementById('invJid').value=jid;
+  document.getElementById('invSub').textContent=`${j.id} · ${j.cu} · ${j.yr||''} ${j.mk||''} ${j.mo||''}`;
+  document.getElementById('invNum').textContent=`INV-${j.invoice?j.invoice.num:String(invCtr).padStart(4,'0')}`;
+  document.getElementById('invDate').textContent=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('invCustName').textContent=j.cu;
+  document.getElementById('invCustContact').innerHTML=`${j.ph||''}${j.ph&&j.em?' · ':''}${j.em||''}`;
+  document.getElementById('invVehicle').textContent=`${j.yr||''} ${j.mk||''} ${j.mo||''}`.trim();
+  document.getElementById('invVehicleSub').textContent=`${j.pl?'Plate: '+j.pl+' · ':''}${j.mi?j.mi.toLocaleString()+' mi':''}`.trim();
+  document.getElementById('invComplaint').textContent=j.co;
+  document.getElementById('invEmail').value=j.em||'';
+  document.getElementById('invPhone').value=j.ph||'';
+
+  // Pre-populate from existing invoice or build from RO
+  const src = j.invoice ? j.invoice.lines : (j.ro?.lines||[]).filter(l=>l.dec==='accepted').map(l=>({
+    desc:l.desc, type:'labor', qty:l.hrs, unitLabel:'hrs', unitPrice:l.rate, parts:l.parts||0
+  }));
+
+  // Build editable lines: labor lines + parts as separate rows
+  invLineData=[];
+  src.forEach(l=>{
+    if(j.invoice){
+      invLineData.push({...l});
+    } else {
+      // Labor row
+      invLineData.push({desc:l.desc,type:'labor',qty:l.qty||l.hrs,unitLabel:'hrs',unitPrice:l.unitPrice||l.rate});
+      // Parts row (if any)
+      if((l.parts||0)>0){
+        invLineData.push({desc:l.desc+' (Parts & Materials)',type:'parts',qty:1,unitLabel:'ea',unitPrice:l.parts});
+      }
+    }
+  });
+
+  if(j.invoice){
+    document.getElementById('invTaxRate').value=j.invoice.taxRate||0;
+    document.getElementById('invNotes').value=j.invoice.notes||'Payment due upon receipt. Thank you for choosing Advanced Auto Key!';
+    document.getElementById('invMsg').value=j.invoice.msg||'';
+  } else {
+    document.getElementById('invTaxRate').value=0;
+  }
+
+  renderInvLines();
+  recalcInvTotals();
+  OM('mInv');
+}
+
+function renderInvLines(){
+  document.getElementById('invLineItems').innerHTML=invLineData.map((l,i)=>`
+    <div class="inv-row-edit">
+      <div>
+        <input type="text" value="${l.desc}" onchange="invLineData[${i}].desc=this.value" style="font-size:13px;padding:5px 7px;margin-bottom:4px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select onchange="invLineData[${i}].type=this.value;renderInvLines()" style="font-size:11px;padding:3px 5px;width:auto;">
+            <option value="labor" ${l.type==='labor'?'selected':''}>Labor</option>
+            <option value="parts" ${l.type==='parts'?'selected':''}>Parts</option>
+            <option value="fee" ${l.type==='fee'?'selected':''}>Fee / Other</option>
+          </select>
+          <button class="btn btn-xs bdng" onclick="invLineData.splice(${i},1);renderInvLines();recalcInvTotals()">Remove</button>
+        </div>
+      </div>
+      <div>
+        <input type="number" value="${l.qty}" step="${l.type==='labor'?'0.25':'1'}" min="0" onchange="invLineData[${i}].qty=parseFloat(this.value)||0;recalcInvTotals()" style="font-size:13px;padding:5px 7px;">
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px;">${l.type==='labor'?'hours':'units'}</div>
+      </div>
+      <div>
+        <input type="number" value="${l.unitPrice}" step="0.01" min="0" onchange="invLineData[${i}].unitPrice=parseFloat(this.value)||0;recalcInvTotals()" style="font-size:13px;padding:5px 7px;">
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px;">${l.type==='labor'?'$/hr':'$/unit'}</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--tx);text-align:right;padding-right:12px;">
+        $${(l.qty*l.unitPrice).toFixed(2)}
+      </div>
+    </div>`).join('')+
+    `<div style="padding:8px 12px;">
+      <button class="btn bg btn-sm" onclick="invLineData.push({desc:'',type:'labor',qty:1,unitLabel:'hrs',unitPrice:115});renderInvLines();recalcInvTotals()">＋ Add Line</button>
+    </div>`;
+}
+
+function recalcInvTotals(){
+  const labor=invLineData.filter(l=>l.type==='labor').reduce((s,l)=>s+l.qty*l.unitPrice,0);
+  const parts=invLineData.filter(l=>l.type!=='labor').reduce((s,l)=>s+l.qty*l.unitPrice,0);
+  const taxRate=parseFloat(document.getElementById('invTaxRate').value)||0;
+  const taxAmt=(labor+parts)*taxRate/100;
+  const grand=labor+parts+taxAmt;
+  document.getElementById('invSubLabor').textContent='$'+labor.toFixed(2);
+  document.getElementById('invSubParts').textContent='$'+parts.toFixed(2);
+  document.getElementById('invTaxAmt').textContent='$'+taxAmt.toFixed(2);
+  document.getElementById('invGrandTotal').textContent='$'+grand.toFixed(2);
+}
+
+function buildInvoiceObject(jid, sentTo){
+  const j=jobs.find(x=>x.id===jid);
+  const taxRate=parseFloat(document.getElementById('invTaxRate').value)||0;
+  const num=j.invoice?j.invoice.num:String(invCtr++).padStart(4,'0');
+  return {
+    num, sentTo, sentAt:new Date().toLocaleString(),
+    lines:[...invLineData.map(l=>({...l}))],
+    taxRate, paid:false,
+    notes:document.getElementById('invNotes').value,
+    msg:document.getElementById('invMsg').value,
+    date:new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})
+  };
+}
+
+function sendInvoiceEmail(){
+  const jid=document.getElementById('invJid').value;
+  const email=document.getElementById('invEmail').value.trim();
+  if(!email){toast('Enter a customer email address','err');return;}
+  const j=jobs.find(x=>x.id===jid);
+  const sentTo=j.invoice?.sentTo||[];
+  if(!sentTo.includes(email)) sentTo.push(email);
+  j.invoice=buildInvoiceObject(jid, sentTo);
+  saveJobDB(j);
+  const msg=document.getElementById('invMsg').value||'Please see the invoice for your recent service.';
+  const subject=`Invoice #${j.invoice.num} — Advanced Auto Key`;
+  const body=`${msg}\n\nInvoice #${j.invoice.num}\nCustomer: ${j.cu}\nVehicle: ${j.yr||''} ${j.mk||''} ${j.mo||''}\nDate: ${j.invoice.date}\n\nTotal Due: ${document.getElementById('invGrandTotal').textContent}\n\nThank you for choosing Advanced Auto Key.`;
+  window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,'_blank');
+  CM('mInv');
+  toast(`📧 Email opened for ${email}`);
+}
+
+function sendInvoiceSMS(){
+  const jid=document.getElementById('invJid').value;
+  const phone=document.getElementById('invPhone').value.trim().replace(/\D/g,'');
+  if(!phone){toast('Enter a customer phone number','err');return;}
+  const j=jobs.find(x=>x.id===jid);
+  const sentTo=j.invoice?.sentTo||[];
+  const phoneLabel=document.getElementById('invPhone').value.trim();
+  if(!sentTo.includes(phoneLabel)) sentTo.push(phoneLabel);
+  j.invoice=buildInvoiceObject(jid, sentTo);
+  saveJobDB(j);
+  const msg=document.getElementById('invMsg').value||'Your vehicle is ready!';
+  const total=document.getElementById('invGrandTotal').textContent;
+  const smsBody=`Advanced Auto Key: ${msg} Invoice #${j.invoice.num} total: ${total}. Questions? Call (610) 555-0100.`;
+  window.open(`sms:${phone}?body=${encodeURIComponent(smsBody)}`,'_blank');
+  CM('mInv');
+  toast(`💬 SMS opened for ${phoneLabel}`);
+}
+
+function previewInvoicePrint(){
+  const jid=document.getElementById('invJid').value;
+  buildPrintHTML(jid);
+  window.print();
+}
+
+function printInvoice(jid){
+  buildPrintHTML(jid);
+  window.print();
+}
+
+function buildPrintHTML(jid){
+  const j=jobs.find(x=>x.id===jid);
+  const inv=j.invoice||buildInvoiceObject(jid,[]);
+  const lines=j.invoice?inv.lines:invLineData;
+  const taxRate=inv.taxRate||parseFloat(document.getElementById('invTaxRate')?.value)||0;
+  const labor=lines.filter(l=>l.type==='labor').reduce((s,l)=>s+l.qty*l.unitPrice,0);
+  const parts=lines.filter(l=>l.type!=='labor').reduce((s,l)=>s+l.qty*l.unitPrice,0);
+  const taxAmt=(labor+parts)*taxRate/100;
+  const grand=labor+parts+taxAmt;
+
+  document.getElementById('printArea').innerHTML=`
+    <div style="max-width:760px;margin:0 auto;padding:32px;font-family:Arial,sans-serif;font-size:13px;color:#111;">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #c41010;">
+        <div>
+          <div style="font-size:24px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#1a1a1a;">ADVANCED AUTO KEY</div>
+          <div style="font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;">Automotive Repair</div>
+          <div style="font-size:12px;color:#666;margin-top:6px;">Tel: (610) 555-0100<br>service@advancedautokey.com</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:32px;font-weight:900;letter-spacing:2px;color:#c41010;">INVOICE</div>
+          <div style="font-size:13px;font-weight:700;color:#444;">Invoice #${inv.num}</div>
+          <div style="font-size:12px;color:#888;">${inv.date}</div>
+        </div>
+      </div>
+
+      <!-- Customer / Vehicle -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#999;margin-bottom:6px;">BILL TO</div>
+          <div style="font-size:15px;font-weight:700;">${j.cu}</div>
+          <div style="font-size:13px;color:#666;">${j.ph||''}${j.ph&&j.em?'<br>':''}${j.em||''}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#999;margin-bottom:6px;">VEHICLE</div>
+          <div style="font-size:15px;font-weight:700;">${j.yr||''} ${j.mk||''} ${j.mo||''}</div>
+          <div style="font-size:13px;color:#666;">${j.pl?'Plate: '+j.pl:''}${j.pl&&j.mi?' · ':''}${j.mi?j.mi.toLocaleString()+' mi':''}</div>
+        </div>
+      </div>
+
+      <!-- Complaint -->
+      <div style="background:#f8f8f8;border-left:4px solid #c41010;padding:10px 14px;border-radius:3px;margin-bottom:20px;font-size:13px;">
+        <strong style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#999;">Services: </strong>${j.co}
+      </div>
+
+      <!-- Line Items -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+        <thead>
+          <tr style="background:#1a1a1a;color:#fff;">
+            <th style="text-align:left;padding:9px 12px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;">Description</th>
+            <th style="text-align:center;padding:9px 12px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;">Type</th>
+            <th style="text-align:right;padding:9px 12px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;">Qty</th>
+            <th style="text-align:right;padding:9px 12px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;">Unit Price</th>
+            <th style="text-align:right;padding:9px 12px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lines.map((l,i)=>`<tr style="background:${i%2===0?'#fff':'#f8f8f8'};">
+            <td style="padding:9px 12px;font-size:13px;font-weight:${l.type==='labor'?'600':'400'}">${l.desc}</td>
+            <td style="padding:9px 12px;text-align:center;font-size:11px;color:#888;">${l.type==='labor'?'Labor':'Parts / Other'}</td>
+            <td style="padding:9px 12px;text-align:right;font-size:13px;">${l.qty} ${l.type==='labor'?'hrs':'ea'}</td>
+            <td style="padding:9px 12px;text-align:right;font-size:13px;">$${l.unitPrice.toFixed(2)}</td>
+            <td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:700;">$${(l.qty*l.unitPrice).toFixed(2)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+        <div style="min-width:280px;">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;"><span style="color:#666;">Labor Subtotal</span><span style="font-weight:600;">$${labor.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;"><span style="color:#666;">Parts & Materials</span><span style="font-weight:600;">$${parts.toFixed(2)}</span></div>
+          ${taxRate>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;"><span style="color:#666;">Tax (${taxRate}%)</span><span style="font-weight:600;">$${taxAmt.toFixed(2)}</span></div>`:''}
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:3px solid #1a1a1a;margin-top:4px;">
+            <span style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:1px;">TOTAL DUE</span>
+            <span style="font-size:22px;font-weight:900;color:#c41010;">$${grand.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div style="background:#f8f8f8;border:1px solid #ddd;border-radius:4px;padding:14px;font-size:12px;color:#666;line-height:1.6;">
+        ${(inv.notes||'Payment due upon receipt. Thank you for choosing Advanced Auto Key!').replace(/\n/g,'<br>')}
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top:28px;padding-top:14px;border-top:1px solid #ddd;text-align:center;font-size:11px;color:#aaa;">
+        Advanced Auto Key Automotive Repair · Thank you for your business!
+      </div>
+    </div>`;
+}
+
+function markInvPaid(jid){
+  const j=jobs.find(x=>x.id===jid);
+  if(j.invoice) j.invoice.paid=true;
+  saveJobDB(j);
+  toast('✓ Invoice marked paid');
+}
+
+// ── MODAL UTILS ──────────────────────
+function OM(id){document.getElementById(id).classList.add('open');}
+function CM(id){document.getElementById(id).classList.remove('open');}
+
+// ── TOAST ────────────────────────────
+function toast(msg,type=''){const w=document.getElementById('tw');const t=document.createElement('div');t.className='toast'+(type==='err'?' err':type==='wrn'?' wrn':'');t.textContent=msg;w.appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+// ── MOBILE ──────────────────────────
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  if(!sb||!ov)return;
+  sb.classList.toggle('mob-open');
+  ov.classList.toggle('open');
+}
+function closeSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  if(sb)sb.classList.remove('mob-open');
+  if(ov)ov.classList.remove('open');
+}
+function isMobile(){return window.innerWidth<=768;}
+function updMobNav(n){
+  ['dashboard','board','newjob','approvals','invoices','jobs','schedule','codes','payroll','settings'].forEach(id=>{
+    const el=document.getElementById('mn-'+id);
+    if(el)el.classList.toggle('active',id===n);
+  });
+  ['mech-dash','mech-hours'].forEach(id=>{
+    const el=document.getElementById('mn-'+id);
+    if(el)el.classList.toggle('active',id===n);
+  });
+}
+function mobNav(panel){showPanel(panel);}
+function mobNavMech(panel){showPanel(panel);}
+function updMobNavVisibility(){
+  const isM=cu.role==='mechanic';
+  const wNav=document.getElementById('mobNav');
+  const mNav=document.getElementById('mobNavMech');
+  if(wNav)wNav.style.display=isM?'none':'flex';
+  if(mNav)mNav.style.display=isM?'flex':'none';
+}
+function updMobDots(){
+  if(typeof jobs==='undefined')return;
+  const rv=jobs.filter(j=>j.status==='Review Required').length;
+  const act=jobs.filter(j=>['New','Evaluation','In Progress'].includes(j.status)).length;
+  const dotA=document.getElementById('mnDotA');
+  const dotB=document.getElementById('mnDotB');
+  if(dotA)dotA.style.display=rv>0?'block':'none';
+  if(dotB)dotB.style.display=act>0?'block':'none';
