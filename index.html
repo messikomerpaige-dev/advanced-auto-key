@@ -1198,7 +1198,9 @@ function startFirestoreListeners(){
     if(firstLoad){
       firstLoad=false;
       const ls=document.getElementById('loadScreen');
-     if(ls){
+if(ls){
+      ls.classList.add('fade');
+      setTimeout(()=>{ls.style.display='none';},400);
       setUser(users[0]);
     } else {
       ra();
